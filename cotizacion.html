@@ -1,5 +1,10 @@
 <html lang="es"><head>
 <meta charset="UTF-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=ai-legible&utm_source=comment&utm_medium=referral&utm_id=c637e681-20f4-424c-8b8f-7bf5c8eae6f4
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta name="hosting-provider" content="Netlify">
+<meta name="netlify-deploy" content="https://netlify.new/?utm_campaign=ai-legible&amp;utm_source=meta&amp;utm_medium=referral&amp;utm_id=c637e681-20f4-424c-8b8f-7bf5c8eae6f4">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#1a1a1a;display:flex;flex-direction:column;align-items:center;padding:24px;color:#222;}
@@ -392,7 +397,7 @@ function buscarCotizaciones() {
     <div class="buscador-item" onclick="seleccionarCotizacion(${c.num})">
       <div class="bi-cliente">${c.cliente}</div>
       <div class="bi-detalle">${c.nroPresupuesto} · ${c.fecha} · ${c.tipo}</div>
-      <div class="bi-sub">${c.productos.substring(0, 60)}${c.productos.length > 60 ? '...' : ''} · Total: ${c.total}</div>
+      <div class="bi-sub">${Array.isArray(c.productos)?c.productos.map(p=>p.nombre).join(", ").substring(0,60):String(c.productos||"").substring(0,60)} · Total: ${typeof c.total==="number"?"$"+c.total.toLocaleString("es-AR"):c.total}</div>
     </div>
   `).join('');
   resultados.style.display = 'block';
@@ -462,14 +467,16 @@ function seleccionarCotizacion(num) {
   document.getElementById('cliente-razon').textContent = c.cliente;
 
   // Llenar productos (una línea resumen)
-  document.getElementById('prod-nombre-0').textContent = c.productos;
+  var prodTxt = Array.isArray(c.productos)?c.productos.map(function(p){return p.nombre+' x'+p.cant}).join('; '):String(c.productos||'');
+  document.getElementById('prod-nombre-0').textContent = prodTxt;
   document.getElementById('prod-cant-0').textContent = '1';
-  const totalNum = parseMonto(c.total);
+  const totalNum = typeof c.total==='number'?c.total:(parseMonto(c.total)||0);
   document.getElementById('prod-unit-0').textContent = totalNum.toString();
 
   // Instalación: si hay saldo, lo usamos como instalación
-  const saldoNum = parseMonto(c.saldo);
-  document.getElementById('inst-desc-0').textContent = 'Instalación y mano de obra';
+  var saldoNum = typeof c.saldo==='number'?c.saldo:(parseMonto(c.saldo)||0);
+  var instTxt = Array.isArray(c.instalacion)?c.instalacion.map(function(i){return i.item}).join('; '):'Instalación y mano de obra';
+  document.getElementById('inst-desc-0').textContent = instTxt;
   document.getElementById('inst-valor-0').textContent = saldoNum.toString();
 
   updateTotals();
@@ -818,4 +825,4 @@ document.addEventListener('input', function(e) {
 cargarDeLocalStorage();
 cargarJSONLocal();
 </script>
-</body></html>
+</body></html><script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="c637e681-20f4-424c-8b8f-7bf5c8eae6f4" data-app-host="app.netlify.com"></script>
