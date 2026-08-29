@@ -398,6 +398,41 @@ function buscarCotizaciones() {
   resultados.style.display = 'block';
 }
 
+function parseMonto(str) {
+  if (!str) return 0;
+  let s = str.replace(/[^0-9.,]/g, '').trim();
+  if (!s) return 0;
+  const ultimoPunto = s.lastIndexOf('.');
+  const ultimaComa = s.lastIndexOf(',');
+
+  if (ultimoPunto > -1 && ultimaComa > -1) {
+    // Mezcla: el último es el decimal
+    if (ultimoPunto > ultimaComa) {
+      // Punto decimal, coma miles → AR
+      s = s.replace(/,/g, '');
+    } else {
+      // Coma decimal, punto miles → US
+      s = s.replace(/\./g, '').replace(',', '.');
+    }
+  } else if (ultimaComa > -1) {
+    const partes = s.split(',');
+    if (partes.length === 2 && partes[1].length <= 2) {
+      s = s.replace(',', '.');
+    } else {
+      s = s.replace(/,/g, '');
+    }
+  } else if (ultimoPunto > -1) {
+    const partes = s.split('.');
+    if (partes.length === 2 && partes[1].length <= 2) {
+      // $478.99 → punto decimal, dejar
+    } else {
+      // $1.143.000 → puntos como miles
+      s = s.replace(/\./g, '');
+    }
+  }
+  return parseFloat(s) || 0;
+}
+
 function seleccionarCotizacion(num) {
   const c = cotizaciones.find(c => c.num === num);
   if (!c) return;
@@ -418,12 +453,11 @@ function seleccionarCotizacion(num) {
   // Llenar productos (una línea resumen)
   document.getElementById('prod-nombre-0').textContent = c.productos;
   document.getElementById('prod-cant-0').textContent = '1';
-  // Intentar extraer el total como número
-  const totalNum = parseFloat(c.total.replace(/[^0-9.,]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+  const totalNum = parseMonto(c.total);
   document.getElementById('prod-unit-0').textContent = totalNum.toString();
 
   // Instalación: si hay saldo, lo usamos como instalación
-  const saldoNum = parseFloat(c.saldo.replace(/[^0-9.,]/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+  const saldoNum = parseMonto(c.saldo);
   document.getElementById('inst-desc-0').textContent = 'Instalación y mano de obra';
   document.getElementById('inst-valor-0').textContent = saldoNum.toString();
 
