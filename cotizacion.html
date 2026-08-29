@@ -392,7 +392,7 @@ function buscarCotizaciones() {
     <div class="buscador-item" onclick="seleccionarCotizacion(${c.num})">
       <div class="bi-cliente">${c.cliente}</div>
       <div class="bi-detalle">${c.nroPresupuesto} · ${c.fecha} · ${c.tipo}</div>
-      <div class="bi-sub">${c.productos.substring(0, 60)}${c.productos.length > 60 ? '...' : ''} · Total: ${c.total}</div>
+      <div class="bi-sub">${String(c.productos.map?.(p=>p.nombre).join(", ") || JSON.stringify(c.productos)).substring(0, 60)}${String(c.productos.map?.(p=>p.nombre).join(", ") || JSON.stringify(c.productos)).length > 60 ? '...' : ''} · Total: ${c.total}</div>
     </div>
   `).join('');
   resultados.style.display = 'block';
