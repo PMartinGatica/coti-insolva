@@ -461,16 +461,42 @@ function seleccionarCotizacion(num) {
   // Llenar datos del cliente
   document.getElementById('cliente-razon').textContent = c.cliente;
 
-  // Llenar productos (una línea resumen)
-  document.getElementById('prod-nombre-0').textContent = c.productos;
-  document.getElementById('prod-cant-0').textContent = '1';
-  const totalNum = parseMonto(c.total);
-  document.getElementById('prod-unit-0').textContent = totalNum.toString();
+  // Llenar productos (parsea array del JSON)
+  if (Array.isArray(c.productos) && c.productos.length > 0) {
+    const p = c.productos[0];
+    document.getElementById('prod-nombre-0').textContent = p.nombre || String(c.productos);
+    document.getElementById('prod-cant-0').textContent = p.cant || '1';
+    document.getElementById('prod-unit-0').textContent = p.unit || 0;
+  } else {
+    document.getElementById('prod-nombre-0').textContent = String(c.productos);
+    document.getElementById('prod-cant-0').textContent = '1';
+    document.getElementById('prod-unit-0').textContent = parseMonto(c.total).toString();
+  }
 
-  // Instalación: si hay saldo, lo usamos como instalación
-  const saldoNum = parseMonto(c.saldo);
-  document.getElementById('inst-desc-0').textContent = 'Instalación y mano de obra';
-  document.getElementById('inst-valor-0').textContent = saldoNum.toString();
+  // Instalación: parsea array
+  if (Array.isArray(c.instalacion) && c.instalacion.length > 0) {
+    const inst = c.instalacion[0];
+    document.getElementById('inst-desc-0').textContent = inst.item || 'Instalación';
+    document.getElementById('inst-valor-0').textContent = inst.valor || 0;
+  } else {
+    const saldoNum = parseMonto(c.saldo);
+    document.getElementById('inst-desc-0').textContent = 'Instalación y mano de obra';
+    document.getElementById('inst-valor-0').textContent = saldoNum.toString();
+  }
+
+  // Tiempos: crea filas si tiene array
+  if (Array.isArray(c.tiempos)) {
+    c.tiempos.forEach((t, i) => {
+      if (i === 0) {
+        const etapaEl = document.getElementById('tiempo-etapa-0');
+        const horasEl = document.getElementById('tiempo-horas-0');
+        if (etapaEl) etapaEl.textContent = t.etapa || '';
+        if (horasEl) horasEl.textContent = t.horas || 0;
+      } else {
+        addTiempoRow(t.etapa || '', t.horas || '');
+      }
+    });
+  }
 
   updateTotals();
 }
