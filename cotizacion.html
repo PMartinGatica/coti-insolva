@@ -444,7 +444,18 @@ function seleccionarCotizacion(num) {
   // Llenar cabecera
   document.getElementById('doc-num').textContent = 'PRESUPUESTO N° ' + c.nroPresupuesto;
   document.getElementById('client-title').textContent = c.cliente;
-  document.getElementById('doc-date').textContent = 'FECHA: ' + c.fecha;
+  // Convertir fecha si viene en formato JS Date (GMT-0300, etc)
+  let fechaStr = c.fecha;
+  if (fechaStr.includes('GMT') || fechaStr.includes('UTC')) {
+    try {
+      const d = new Date(fechaStr);
+      const dia = String(d.getDate()).padStart(2,'0');
+      const mes = String(d.getMonth()+1).padStart(2,'0');
+      const anio = d.getFullYear();
+      fechaStr = dia + '/' + mes + '/' + anio;
+    } catch(e) {}
+  }
+  document.getElementById('doc-date').textContent = 'FECHA: ' + fechaStr;
   document.getElementById('project-title').textContent = c.tipo;
 
   // Llenar datos del cliente
