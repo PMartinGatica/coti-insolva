@@ -89,6 +89,22 @@ td.tot-i.disc-active{color:#e67e22!important;}
 .sub-row.total-row span{color:white;font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:1px;}
 .sub-row.total-row span:last-child{color:#98C665;font-size:18px;letter-spacing:0;}
 
+/* TIEMPOS - toggleable section */
+.tiempos-wrap{display:none;padding:0 36px;margin-top:8px;}
+.tiempos-wrap.visible{display:block;}
+#tiempos-tbody td.r{text-align:right;font-family:'Courier New',monospace;font-size:11.5px;}
+
+/* CUOTAS section */
+.cuotas-wrap{display:none;padding:18px 36px 10px 36px;}
+.cuotas-wrap.visible{display:block;}
+.cuotas-box{width:310px;border-radius:6px;overflow:hidden;border:1px solid #C2C1C1;}
+.cuota-row{display:flex;justify-content:space-between;padding:8px 14px;font-size:12px;border-bottom:1px solid #aaa;background:#e8f5e9;}
+.cuota-row span:first-child{color:#2e7d32;font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-size:11px;}
+.cuota-row span:last-child{font-family:'Courier New',monospace;font-weight:700;color:#2e7d32;}
+.cuota-row.total-row{background:#1b5e20;}
+.cuota-row.total-row span{color:white;}
+.cuota-row.total-row span:last-child{color:#98C665;}
+
 /* PAGO */
 .payment{padding:18px 36px 10px 36px;font-size:12px;}
 .payment h4{font-weight:900;color:#000;margin-bottom:6px;font-size:11px;border-left:4px solid #98C665;padding-left:8px;text-transform:uppercase;letter-spacing:1.5px;}
@@ -131,7 +147,11 @@ td.tot-i.disc-active{color:#e67e22!important;}
  <div class="sep"></div>
  <button class="btn-add" onclick="addInstRow()">+ Instalación</button>
  <div class="sep"></div>
+ <button class="btn-add" id="btn-tiempos" onclick="toggleTiemposSection()">⏱ Tiempos: OFF</button>
+ <div class="sep"></div>
  <button class="btn-disc" id="disc-btn" onclick="toggleDisc()">🏷 Descuento: OFF</button>
+ <div class="sep"></div>
+ <button class="btn-imp" id="btn-cuotas" onclick="toggleCuotas()">💰 Cuotas: OFF</button>
  <div class="sep"></div>
  <button class="btn-imp" onclick="document.getElementById('json-file-input').click()" title="Cargar JSON de cotizaciones">📂 Cargar datos</button>
  <input type="file" id="json-file-input" accept=".json" style="display:none" onchange="cargarJSONDesdeInput(this)">
@@ -140,6 +160,8 @@ td.tot-i.disc-active{color:#e67e22!important;}
  <button class="btn-tyc" id="tyc-btn" onclick="toggleTyC()">📋 Términos y Cond.</button>
  <div class="sep"></div>
  <button onclick="saveHTMLWithLogo()" style="color:#C2C1C1!important;border-color:#555!important;">💾 Guardar HTML</button>
+ <div class="sep"></div>
+ <button onclick="limpiarTodo()" style="color:#e74c3c!important;border-color:#e74c3c!important;">🗑 Limpiar todo</button>
 </div>
 
 <div class="page" id="main-page">
@@ -230,6 +252,27 @@ td.tot-i.disc-active{color:#e67e22!important;}
  </table>
  </div>
 
+ <!-- SECCIÓN 4: TIEMPOS (toggleable) -->
+ <div class="section-title" id="tiempos-header" style="display:none">
+ <div class="section-num">4</div>
+ <div class="section-label">Tiempos del proyecto</div>
+ </div>
+ <div class="tiempos-wrap" id="tiempos-wrap">
+ <table id="tiempos-table">
+ <thead><tr><th>Tarea / Etapa</th><th class="r">Horas</th></tr></thead>
+ <tbody id="tiempos-tbody">
+ <tr id="tiempos-row-template" style="display:none">
+ <td contenteditable="true">Nueva tarea</td>
+ <td class="r" contenteditable="true">0</td>
+ </tr>
+ </tbody>
+ </table>
+ <div style="display:flex;gap:6px;margin:6px 0 0 0;">
+ <button class="btn-add" onclick="addTiempoRow()" style="font-size:11px;padding:4px 12px;border:1px solid #98C665;background:transparent;color:#98C665;border-radius:6px;cursor:pointer;">+ Tarea</button>
+ <span style="font-size:11px;color:#999;margin-left:auto;">Total horas: <span id="tiempos-total-hs">0</span>h</span>
+ </div>
+ </div>
+
  <!-- SUBTOTALES -->
  <div class="subtotals-area">
  <div class="subtotals-box">
@@ -249,6 +292,14 @@ td.tot-i.disc-active{color:#e67e22!important;}
  - Transferencia bancaria / Depósito / Efectivo.<br>
  - Consultar por cuotas o financiación.
  </p>
+ </div>
+
+ <!-- CUOTAS (toggleable) -->
+ <div class="cuotas-wrap" id="cuotas-wrap">
+ <div class="cuotas-box">
+ <div class="cuota-row"><span>3 cuotas sin interés</span><span id="cuota-3">$0</span></div>
+ <div class="cuota-row total-row"><span>6 cuotas sin interés</span><span id="cuota-6">$0</span></div>
+ </div>
  </div>
 
  <div class="footer">
@@ -456,6 +507,24 @@ function updateTotals() {
     discRow.style.display = 'none';
   }
   document.getElementById('total-amount').textContent = '$'+total.toLocaleString('es-AR');
+
+  // Cuotas
+  const c3 = Math.round(total / 3);
+  const c6 = Math.round(total / 6);
+  document.getElementById('cuota-3').textContent = '$'+c3.toLocaleString('es-AR')+' x 3';
+  document.getElementById('cuota-6').textContent = '$'+c6.toLocaleString('es-AR')+' x 6';
+
+  // Horas tiempos
+  let hsTotal = 0;
+  document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"])').forEach(row => {
+    const tds = row.querySelectorAll('td');
+    if(tds.length >= 2) {
+      hsTotal += parseInt(tds[1].textContent.replace(/[^0-9]/g,'')) || 0;
+    }
+  });
+  document.getElementById('tiempos-total-hs').textContent = hsTotal;
+
+  guardarEnLocalStorage();
 }
 
 function toggleDisc() {
@@ -472,6 +541,165 @@ function toggleDisc() {
     document.getElementById('disc-btn').innerHTML = '🏷 Descuento: OFF';
   }
   updateTotals();
+}
+
+// ========== TIEMPOS ==========
+let tiemposVisible = false;
+
+function toggleTiemposSection() {
+  tiemposVisible = !tiemposVisible;
+  document.getElementById('tiempos-wrap').classList.toggle('visible');
+  document.getElementById('tiempos-header').style.display = tiemposVisible ? 'flex' : 'none';
+  document.getElementById('btn-tiempos').innerHTML = tiemposVisible ? '⏱ Tiempos: ON' : '⏱ Tiempos: OFF';
+  document.getElementById('btn-tiempos').classList.toggle('active');
+  if(tiemposVisible && document.querySelectorAll('#tiempos-tbody tr').length === 0) {
+    addTiempoRow();
+  }
+}
+
+let tiemposCount = 0;
+
+function addTiempoRow() {
+  const tmpl = document.getElementById('tiempos-row-template');
+  const clone = tmpl.cloneNode(true);
+  clone.style.display = '';
+  clone.removeAttribute('id');
+  document.getElementById('tiempos-tbody').appendChild(clone);
+  tiemposCount++;
+  updateTotals();
+}
+
+// ========== CUOTAS ==========
+let cuotasVisible = false;
+
+function toggleCuotas() {
+  cuotasVisible = !cuotasVisible;
+  document.getElementById('cuotas-wrap').classList.toggle('visible');
+  document.getElementById('btn-cuotas').innerHTML = cuotasVisible ? '💰 Cuotas: ON' : '💰 Cuotas: OFF';
+  document.getElementById('btn-cuotas').classList.toggle('active');
+  if(cuotasVisible) updateTotals();
+}
+
+// ========== LOCAL STORAGE ==========
+function guardarEnLocalStorage() {
+  try {
+    const data = {
+      docNum: document.getElementById('doc-num').textContent,
+      clientTitle: document.getElementById('client-title').textContent,
+      projectTitle: document.getElementById('project-title').textContent,
+      docDate: document.getElementById('doc-date').textContent,
+      clienteRazon: document.getElementById('cliente-razon').textContent,
+      clienteTel: document.getElementById('cliente-tel').textContent,
+      clienteDir: document.getElementById('cliente-dir').textContent,
+      clienteLocalidad: document.getElementById('cliente-localidad').textContent,
+      formasPago: document.getElementById('formas-pago').innerHTML,
+      prodRows: [],
+      instRows: [],
+      tiemposRows: []
+    };
+    document.querySelectorAll('#prod-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
+      const tds = row.querySelectorAll('td');
+      data.prodRows.push({
+        codigo: tds[1]?.textContent || '',
+        nombre: tds[2]?.textContent || '',
+        cant: tds[3]?.textContent || '1',
+        unit: tds[4]?.textContent || '0',
+        img: row.querySelector('img')?.src || ''
+      });
+    });
+    document.querySelectorAll('#inst-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
+      const tds = row.querySelectorAll('td');
+      data.instRows.push({
+        desc: tds[0]?.textContent || '',
+        valor: tds[1]?.textContent || '0'
+      });
+    });
+    document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
+      const tds = row.querySelectorAll('td');
+      data.tiemposRows.push({
+        tarea: tds[0]?.textContent || '',
+        horas: tds[1]?.textContent || '0'
+      });
+    });
+    localStorage.setItem('insolva-cotizacion', JSON.stringify(data));
+  } catch(e) { /* localStorage no disponible */ }
+}
+
+function cargarDeLocalStorage() {
+  try {
+    const raw = localStorage.getItem('insolva-cotizacion');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    document.getElementById('doc-num').textContent = data.docNum || 'PRESUPUESTO N° 0000';
+    document.getElementById('client-title').textContent = data.clientTitle || 'NOMBRE DEL CLIENTE';
+    document.getElementById('project-title').textContent = data.projectTitle || 'PROYECTO / INSTALACIÓN';
+    document.getElementById('doc-date').textContent = data.docDate || 'FECHA: 26/08/2026';
+    document.getElementById('cliente-razon').textContent = data.clienteRazon || 'Nombre del cliente';
+    document.getElementById('cliente-tel').textContent = data.clienteTel || '+54 9 2901 000000';
+    document.getElementById('cliente-dir').textContent = data.clienteDir || 'Dirección de instalación';
+    document.getElementById('cliente-localidad').textContent = data.clienteLocalidad || 'Ushuaia, Tierra del Fuego';
+    if(data.formasPago) document.getElementById('formas-pago').innerHTML = data.formasPago;
+    // Restaurar productos
+    if(data.prodRows && data.prodRows.length > 0) {
+      const body = document.getElementById('prod-body');
+      body.innerHTML = '<tr id="prod-row-template" style="display:none">' + body.querySelector('#prod-row-template').innerHTML + '</tr>';
+      prodCount = 1;
+      data.prodRows.forEach((r, i) => {
+        addProdRow();
+        const rows = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])');
+        const tr = rows[rows.length-1];
+        const tds = tr.querySelectorAll('td');
+        if(tds.length >= 6) {
+          tds[1].textContent = r.codigo;
+          tds[2].textContent = r.nombre;
+          tds[3].textContent = r.cant;
+          tds[4].textContent = r.unit;
+          if(r.img && tds[0]) {
+            const img = document.createElement('img');
+            img.src = r.img;
+            img.className = 'img-thumb';
+            img.style.width = '54px'; img.style.height = '44px';
+            tds[0].innerHTML = ''; tds[0].appendChild(img);
+          }
+        }
+      });
+    }
+    // Restaurar instalación
+    if(data.instRows && data.instRows.length > 0) {
+      const body = document.getElementById('inst-body');
+      body.innerHTML = '<tr id="inst-row-template" style="display:none"><td contenteditable="true">Descripción del servicio</td><td class="r" contenteditable="true">0</td></tr>';
+      data.instRows.forEach((r, i) => {
+        if(i === 0) {
+          body.querySelector('tr:not([id*="template"])').querySelector('td').textContent = r.desc;
+          body.querySelector('tr:not([id*="template"])').querySelectorAll('td')[1].textContent = r.valor;
+        } else {
+          addInstRow();
+          const tr = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])')[i];
+          tr.querySelector('td').textContent = r.desc;
+          tr.querySelectorAll('td')[1].textContent = r.valor;
+        }
+      });
+    }
+    // Restaurar tiempos
+    if(data.tiemposRows && data.tiemposRows.length > 0) {
+      document.getElementById('tiempos-tbody').innerHTML = '';
+      data.tiemposRows.forEach(r => {
+        addTiempoRow();
+        const tr = document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"])');
+        const t = tr[tr.length-1];
+        t.querySelector('td').textContent = r.tarea;
+        t.querySelectorAll('td')[1].textContent = r.horas;
+      });
+    }
+    updateTotals();
+  } catch(e) { /* ignorar error de carga */ }
+}
+
+// ========== LIMPIAR ==========
+function limpiarTodo() {
+  if(!confirm('¿Borrar todo el contenido y empezar de cero?')) return;
+  localStorage.removeItem('insolva-cotizacion');
+  location.reload();
 }
 
 function loadProdImg(input, row) {
@@ -512,17 +740,26 @@ function saveHTMLWithLogo() {
   URL.revokeObjectURL(url);
 }
 
-// Intento cargar automático desde archivo local al inicio
+// Carga desde GitHub raw (siempre actualizado, no necesita redeploy)
+// El Apps Script sube el JSON a GitHub automaticamente
 async function cargarJSONLocal() {
+  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json';
   try {
-    const res = await fetch('cotizaciones_data.json');
+    const res = await fetch(GITHUB_RAW_URL + '?t=' + Date.now());  // cache bust
     if (res.ok) {
       const data = await res.json();
       cargarCotizaciones(data);
-      document.getElementById('buscador-input').placeholder = `🔍 ${data.length} cotizaciones (local)`;
+      document.getElementById('buscador-input').placeholder = `🔍 ${data.length} cotizaciones`;
     }
   } catch(e) {
-    // No hay archivo local, esperar carga manual
+    // Fallback: intentar local
+    try {
+      const res2 = await fetch('cotizaciones_data.json');
+      if (res2.ok) {
+        const data = await res2.json();
+        cargarCotizaciones(data);
+      }
+    } catch(e2) {}
   }
 }
 
@@ -532,6 +769,8 @@ document.addEventListener('input', function(e) {
 });
 
 // Intentar cargar JSON local, si no está esperar carga manual
+// Cargar datos guardados en localStorage
+cargarDeLocalStorage();
 cargarJSONLocal();
 </script>
 </body></html>
