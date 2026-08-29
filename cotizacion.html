@@ -788,7 +788,7 @@ function saveHTMLWithLogo() {
 // Carga desde GitHub raw (siempre actualizado, no necesita redeploy)
 // El Apps Script sube el JSON a GitHub automaticamente
 async function cargarJSONLocal() {
-  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json';
+  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/PMartinGatica/coti-insolva/main/cotizaciones_data.json';
   try {
     const res = await fetch(GITHUB_RAW_URL + '?t=' + Date.now());  // cache bust
     if (res.ok) {
