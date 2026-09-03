@@ -1,10 +1,5 @@
 <html lang="es"><head>
 <meta charset="UTF-8">
-<!-- This site is hosted on Netlify. Anyone can build and deploy a site
-     like this one for free: https://netlify.new/?utm_campaign=ai-legible&utm_source=comment&utm_medium=referral&utm_id=c637e681-20f4-424c-8b8f-7bf5c8eae6f4
-     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
-<meta name="hosting-provider" content="Netlify">
-<meta name="netlify-deploy" content="https://netlify.new/?utm_campaign=ai-legible&amp;utm_source=meta&amp;utm_medium=referral&amp;utm_id=c637e681-20f4-424c-8b8f-7bf5c8eae6f4">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#1a1a1a;display:flex;flex-direction:column;align-items:center;padding:24px;color:#222;}
@@ -141,8 +136,6 @@ td.tot-i.disc-active{color:#e67e22!important;}
 .btn-del-row{background:transparent;border:none;color:#e74c3c;font-size:14px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:all .15s;font-weight:bold;line-height:1;display:inline-flex;align-items:center;justify-content:center;}
 .btn-del-row:hover{background:#e74c3c;color:#fff;}
 @media print { .btn-del-row, th.col-del, td.col-del { display: none !important; } }
-
-
 .btn-imp.usd-active{background:#98C665!important;color:#000!important;border-color:#98C665!important;}
 
 </style>
@@ -330,7 +323,7 @@ td.tot-i.disc-active{color:#e67e22!important;}
  </div>
 
  <div class="footer">
- <div class="footer-brand">INSOLVA SEGURIDAD</div>
+ <div class="footer-brand">INSOLVA</div>
  <div class="footer-contact">
  <span>+54 9 2901 64-1452 · contacto@insolvagroup.com</span>
  </div>
@@ -471,10 +464,10 @@ function seleccionarCotizacion(num) {
   document.getElementById('buscador-input').value = '';
 
   // Llenar cabecera
-  document.getElementById('doc-num').textContent = 'PRESUPUESTO N° ' + c.nroPresupuesto;
-  document.getElementById('client-title').textContent = c.cliente;
-  // Convertir fecha si viene en formato JS Date (GMT-0300, etc)
-  let fechaStr = c.fecha;
+  document.getElementById('doc-num').textContent = 'PRESUPUESTO N° ' + (c.nroPresupuesto || '0000');
+  document.getElementById('client-title').textContent = c.cliente || 'NOMBRE DEL CLIENTE';
+  
+  let fechaStr = c.fecha || '';
   if (fechaStr.includes('GMT') || fechaStr.includes('UTC')) {
     try {
       const d = new Date(fechaStr);
@@ -484,47 +477,96 @@ function seleccionarCotizacion(num) {
       fechaStr = dia + '/' + mes + '/' + anio;
     } catch(e) {}
   }
-  document.getElementById('doc-date').textContent = 'FECHA: ' + fechaStr;
-  document.getElementById('project-title').textContent = c.tipo;
+  document.getElementById('doc-date').textContent = 'FECHA: ' + (fechaStr || '01/01/2026');
+  document.getElementById('project-title').textContent = c.tipo || 'PROYECTO';
 
   // Llenar datos del cliente
-  document.getElementById('cliente-razon').textContent = c.cliente;
+  document.getElementById('cliente-razon').textContent = c.cliente || '';
 
-  // Llenar productos (parsea array del JSON)
+  // Llenar productos
+  const prodBody = document.getElementById('prod-body');
+  const prodTmpl = prodBody.querySelector('#prod-row-template');
+  const prodTmplHTML = prodTmpl ? prodTmpl.outerHTML : '';
+  
   if (Array.isArray(c.productos) && c.productos.length > 0) {
-    const p = c.productos[0];
-    document.getElementById('prod-nombre-0').textContent = p.nombre || String(c.productos);
-    document.getElementById('prod-cant-0').textContent = p.cant || '1';
-    document.getElementById('prod-unit-0').textContent = p.unit || 0;
-  } else {
-    document.getElementById('prod-nombre-0').textContent = String(c.productos);
-    document.getElementById('prod-cant-0').textContent = '1';
-    document.getElementById('prod-unit-0').textContent = parseMonto(c.total).toString();
+    let rowsHTML = prodTmplHTML;
+    c.productos.forEach((p, idx) => {
+      const nom = p.nombre || p.descripcion || p.item || '';
+      const cant = p.cant || p.cantidad || 1;
+      const unit = p.unit || p.unitario || p.precio || 0;
+      rowsHTML += `
+      <tr>
+        <td class="img-cell"><div class="img-placeholder" onclick="document.getElementById('img-input-${idx}').click()"><span>+</span><input type="file" id="img-input-${idx}" accept="image/*" onchange="loadProdImg(this,${idx})"></div></td>
+        <td contenteditable="true">${p.codigo || 'PROD'}</td>
+        <td contenteditable="true">${nom}</td>
+        <td contenteditable="true">${cant}</td>
+        <td class="r" contenteditable="true">${unit}</td>
+        <td class="r total-cell" data-row="${idx}">$0</td>
+        <td class="col-del" style="text-align:center"><button class="btn-del-row" onclick="removeRow(this)" title="Eliminar fila">✕</button></td>
+      </tr>`;
+    });
+    prodBody.innerHTML = rowsHTML;
+    prodCount = c.productos.length;
+  } else if (typeof c.productos === 'string' && c.productos.trim().length > 0) {
+    prodBody.innerHTML = prodTmplHTML + `
+    <tr>
+      <td class="img-cell"><div class="img-placeholder" onclick="document.getElementById('img-input-0').click()"><span>+</span><input type="file" id="img-input-0" accept="image/*" onchange="loadProdImg(this,0)"></div></td>
+      <td contenteditable="true">CARGAR</td>
+      <td contenteditable="true">${c.productos}</td>
+      <td contenteditable="true">1</td>
+      <td class="r" contenteditable="true">${parseMonto(c.total || '0')}</td>
+      <td class="r total-cell" data-row="0">$0</td>
+      <td class="col-del" style="text-align:center"><button class="btn-del-row" onclick="removeRow(this)" title="Eliminar fila">✕</button></td>
+    </tr>`;
+    prodCount = 1;
   }
 
-  // Instalación: parsea array
+  // Instalación
+  const instBody = document.getElementById('inst-body');
+  const instTmpl = instBody.querySelector('#inst-row-template');
+  const instTmplHTML = instTmpl ? instTmpl.outerHTML : '';
+  
   if (Array.isArray(c.instalacion) && c.instalacion.length > 0) {
-    const inst = c.instalacion[0];
-    document.getElementById('inst-desc-0').textContent = inst.item || 'Instalación';
-    document.getElementById('inst-valor-0').textContent = inst.valor || 0;
+    let instRowsHTML = instTmplHTML;
+    c.instalacion.forEach((item) => {
+      instRowsHTML += `
+      <tr>
+        <td contenteditable="true">${item.item || item.desc || 'Instalación'}</td>
+        <td class="r" contenteditable="true">${item.valor || 0}</td>
+        <td class="col-del" style="text-align:center"><button class="btn-del-row" onclick="removeRow(this)" title="Eliminar fila">✕</button></td>
+      </tr>`;
+    });
+    instBody.innerHTML = instRowsHTML;
+    instCount = c.instalacion.length;
   } else {
     const saldoNum = parseMonto(c.saldo);
-    document.getElementById('inst-desc-0').textContent = 'Instalación y mano de obra';
-    document.getElementById('inst-valor-0').textContent = saldoNum.toString();
+    instBody.innerHTML = instTmplHTML + `
+    <tr>
+      <td contenteditable="true">Instalación y mano de obra</td>
+      <td class="r" contenteditable="true">${saldoNum}</td>
+      <td class="col-del" style="text-align:center"><button class="btn-del-row" onclick="removeRow(this)" title="Eliminar fila">✕</button></td>
+    </tr>`;
+    instCount = 1;
   }
 
-  // Tiempos: crea filas si tiene array
-  if (Array.isArray(c.tiempos)) {
-    c.tiempos.forEach((t, i) => {
-      if (i === 0) {
-        const etapaEl = document.getElementById('tiempo-etapa-0');
-        const horasEl = document.getElementById('tiempo-horas-0');
-        if (etapaEl) etapaEl.textContent = t.etapa || '';
-        if (horasEl) horasEl.textContent = t.horas || 0;
-      } else {
-        addTiempoRow(t.etapa || '', t.horas || '');
-      }
-    });
+  // Tiempos
+  const tiemposBody = document.getElementById('tiempos-tbody');
+  if (tiemposBody) {
+    const tiemposTmpl = tiemposBody.querySelector('#tiempos-row-template');
+    const tiemposTmplHTML = tiemposTmpl ? tiemposTmpl.outerHTML : '';
+    if (Array.isArray(c.tiempos) && c.tiempos.length > 0) {
+      let tRowsHTML = tiemposTmplHTML;
+      c.tiempos.forEach(t => {
+        tRowsHTML += `
+        <tr>
+          <td contenteditable="true">${t.etapa || t.tarea || ''}</td>
+          <td class="r" contenteditable="true">${t.horas || 0}</td>
+          <td class="col-del" style="text-align:center"><button class="btn-del-row" onclick="removeRow(this)" title="Eliminar fila">✕</button></td>
+        </tr>`;
+      });
+      tiemposBody.innerHTML = tRowsHTML;
+      tiemposCount = c.tiempos.length;
+    }
   }
 
   updateTotals();
@@ -595,518 +637,34 @@ function removeRow(btn) {
   guardarEnLocalStorage();
 }
 
+function toggleUSD() {
+  usdActive = !usdActive;
+  const btn = document.getElementById('btn-usd');
+  const inputWrap = document.getElementById('usd-input-wrap');
+  const sep = document.getElementById('usd-sep');
+  
+  if (usdActive) {
+    btn.innerHTML = '💵 Moneda: USD (U$S)';
+    btn.classList.add('usd-active');
+    inputWrap.style.display = 'inline-flex';
+    sep.style.display = 'block';
+  } else {
+    btn.innerHTML = '💵 Moneda: ARS ($)';
+    btn.classList.remove('usd-active');
+    inputWrap.style.display = 'none';
+    sep.style.display = 'none';
+  }
+  updateTotals();
+  guardarEnLocalStorage();
+}
+
 function updateTotals() {
   const rateInput = document.getElementById('usd-rate-input');
   if (rateInput) {
     usdRate = parseFloat(rateInput.value) || 1;
   }
 
-  const currSymbol = usdActive ? 'USD function toggleDisc() {
-  discountActive = !discountActive;
-  document.getElementById('disc-btn').classList.toggle('active');
-  if(discountActive) {
-    const pct = prompt('Porcentaje de descuento:', '10');
-    if(pct !== null) {
-      discountPercent = parseInt(pct) || 0;
-      document.getElementById('disc-btn').innerHTML = '🏷 Descuento: '+discountPercent+'%';
-    }
-  } else {
-    discountPercent = 0;
-    document.getElementById('disc-btn').innerHTML = '🏷 Descuento: OFF';
-  }
-  updateTotals();
-}
-
-// ========== TIEMPOS ==========
-let tiemposVisible = false;
-
-function toggleTiemposSection() {
-  tiemposVisible = !tiemposVisible;
-  document.getElementById('tiempos-wrap').classList.toggle('visible');
-  document.getElementById('tiempos-header').style.display = tiemposVisible ? 'flex' : 'none';
-  document.getElementById('btn-tiempos').innerHTML = tiemposVisible ? '⏱ Tiempos: ON' : '⏱ Tiempos: OFF';
-  document.getElementById('btn-tiempos').classList.toggle('active');
-  if(tiemposVisible && document.querySelectorAll('#tiempos-tbody tr').length === 0) {
-    addTiempoRow();
-  }
-}
-
-let tiemposCount = 0;
-
-function addTiempoRow() {
-  const tmpl = document.getElementById('tiempos-row-template');
-  const clone = tmpl.cloneNode(true);
-  clone.style.display = '';
-  clone.removeAttribute('id');
-  document.getElementById('tiempos-tbody').appendChild(clone);
-  tiemposCount++;
-  updateTotals();
-}
-
-// ========== CUOTAS ==========
-let cuotasVisible = false;
-
-function toggleCuotas() {
-  cuotasVisible = !cuotasVisible;
-  document.getElementById('cuotas-wrap').classList.toggle('visible');
-  document.getElementById('btn-cuotas').innerHTML = cuotasVisible ? '💰 Cuotas: ON' : '💰 Cuotas: OFF';
-  document.getElementById('btn-cuotas').classList.toggle('active');
-  if(cuotasVisible) updateTotals();
-}
-
-// ========== LOCAL STORAGE ==========
-function guardarEnLocalStorage() {
-  try {
-    const data = {
-      docNum: document.getElementById('doc-num').textContent,
-      clientTitle: document.getElementById('client-title').textContent,
-      projectTitle: document.getElementById('project-title').textContent,
-      docDate: document.getElementById('doc-date').textContent,
-      clienteRazon: document.getElementById('cliente-razon').textContent,
-      clienteTel: document.getElementById('cliente-tel').textContent,
-      clienteDir: document.getElementById('cliente-dir').textContent,
-      clienteLocalidad: document.getElementById('cliente-localidad').textContent,
-      formasPago: document.getElementById('formas-pago').innerHTML,
-      prodRows: [],
-      instRows: [],
-      tiemposRows: []
-    };
-    document.querySelectorAll('#prod-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.prodRows.push({
-        codigo: tds[1]?.textContent || '',
-        nombre: tds[2]?.textContent || '',
-        cant: tds[3]?.textContent || '1',
-        unit: tds[4]?.textContent || '0',
-        img: row.querySelector('img')?.src || ''
-      });
-    });
-    document.querySelectorAll('#inst-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.instRows.push({
-        desc: tds[0]?.textContent || '',
-        valor: tds[1]?.textContent || '0'
-      });
-    });
-    document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.tiemposRows.push({
-        tarea: tds[0]?.textContent || '',
-        horas: tds[1]?.textContent || '0'
-      });
-    });
-    data.usdActive = usdActive;
-    data.usdRate = usdRate;
-    localStorage.setItem('insolva-cotizacion', JSON.stringify(data));
-  } catch(e) { /* localStorage no disponible */ }
-}
-
-function cargarDeLocalStorage() {
-  try {
-    const raw = localStorage.getItem('insolva-cotizacion');
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    document.getElementById('doc-num').textContent = data.docNum || 'PRESUPUESTO N° 0000';
-    document.getElementById('client-title').textContent = data.clientTitle || 'NOMBRE DEL CLIENTE';
-    document.getElementById('project-title').textContent = data.projectTitle || 'PROYECTO / INSTALACIÓN';
-    document.getElementById('doc-date').textContent = data.docDate || 'FECHA: 26/08/2026';
-    document.getElementById('cliente-razon').textContent = data.clienteRazon || 'Nombre del cliente';
-    document.getElementById('cliente-tel').textContent = data.clienteTel || '+54 9 2901 64-1452';
-    document.getElementById('cliente-dir').textContent = data.clienteDir || 'Dirección de instalación';
-    document.getElementById('cliente-localidad').textContent = data.clienteLocalidad || 'Ushuaia, Tierra del Fuego';
-    if(data.formasPago) document.getElementById('formas-pago').innerHTML = data.formasPago;
-    if(data.usdRate) {
-      usdRate = data.usdRate;
-      const rInput = document.getElementById('usd-rate-input');
-      if(rInput) rInput.value = usdRate;
-    }
-    if(data.usdActive) {
-      usdActive = false; // toggle lo pasa a true
-      toggleUSD();
-    }
-    // Restaurar productos
-    if(data.prodRows && data.prodRows.length > 0) {
-      const body = document.getElementById('prod-body');
-      body.innerHTML = '<tr id="prod-row-template" style="display:none">' + body.querySelector('#prod-row-template').innerHTML + '</tr>';
-      prodCount = 1;
-      data.prodRows.forEach((r, i) => {
-        addProdRow();
-        const rows = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])');
-        const tr = rows[rows.length-1];
-        const tds = tr.querySelectorAll('td');
-        if(tds.length >= 6) {
-          tds[1].textContent = r.codigo;
-          tds[2].textContent = r.nombre;
-          tds[3].textContent = r.cant;
-          tds[4].textContent = r.unit;
-          if(r.img && tds[0]) {
-            const img = document.createElement('img');
-            img.src = r.img;
-            img.className = 'img-thumb';
-            img.style.width = '54px'; img.style.height = '44px';
-            tds[0].innerHTML = ''; tds[0].appendChild(img);
-          }
-        }
-      });
-    }
-    // Restaurar instalación
-    if(data.instRows && data.instRows.length > 0) {
-      const body = document.getElementById('inst-body');
-      body.innerHTML = '<tr id="inst-row-template" style="display:none"><td contenteditable="true">Descripción del servicio</td><td class="r" contenteditable="true">0</td></tr>';
-      data.instRows.forEach((r, i) => {
-        if(i === 0) {
-          body.querySelector('tr:not([id*="template"])').querySelector('td').textContent = r.desc;
-          body.querySelector('tr:not([id*="template"])').querySelectorAll('td')[1].textContent = r.valor;
-        } else {
-          addInstRow();
-          const tr = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])')[i];
-          tr.querySelector('td').textContent = r.desc;
-          tr.querySelectorAll('td')[1].textContent = r.valor;
-        }
-      });
-    }
-    // Restaurar tiempos
-    if(data.tiemposRows && data.tiemposRows.length > 0) {
-      document.getElementById('tiempos-tbody').innerHTML = '';
-      data.tiemposRows.forEach(r => {
-        addTiempoRow();
-        const tr = document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"])');
-        const t = tr[tr.length-1];
-        t.querySelector('td').textContent = r.tarea;
-        t.querySelectorAll('td')[1].textContent = r.horas;
-      });
-    }
-    updateTotals();
-  } catch(e) { /* ignorar error de carga */ }
-}
-
-// ========== LIMPIAR ==========
-function limpiarTodo() {
-  if(!confirm('¿Borrar todo el contenido y empezar de cero?')) return;
-  localStorage.removeItem('insolva-cotizacion');
-  location.reload();
-}
-
-function loadProdImg(input, row) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = document.createElement('img');
-    img.src = e.target.result;
-    img.className = 'img-thumb';
-    img.style.width = '54px';
-    img.style.height = '44px';
-    const cell = input.closest('.img-cell') || input.parentElement.closest('td');
-    if(cell) { cell.innerHTML = ''; cell.appendChild(img); }
-  };
-  reader.readAsDataURL(file);
-}
-
-function loadLogoFile(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById('logo-img').src = e.target.result;
-    document.getElementById('logo-placeholder').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-}
-
-function printAndExport() { window.print(); }
-
-function saveHTMLWithLogo() {
-  const htmlContent = document.documentElement.outerHTML;
-  const blob = new Blob([htmlContent], {type: 'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'insolva-cotizacion.html'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// Carga desde GitHub raw (siempre actualizado, no necesita redeploy)
-// El Apps Script sube el JSON a GitHub automaticamente
-async function cargarJSONLocal() {
-  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json';
-  try {
-    const res = await fetch(GITHUB_RAW_URL + '?t=' + Date.now());  // cache bust
-    if (res.ok) {
-      const data = await res.json();
-      cargarCotizaciones(data);
-      document.getElementById('buscador-input').placeholder = `🔍 ${data.length} cotizaciones`;
-    }
-  } catch(e) {
-    // Fallback: intentar local
-    try {
-      const res2 = await fetch('cotizaciones_data.json');
-      if (res2.ok) {
-        const data = await res2.json();
-        cargarCotizaciones(data);
-      }
-    } catch(e2) {}
-  }
-}
-
-// Listen for content changes
-document.addEventListener('input', function(e) {
-  if(e.target.getAttribute('contenteditable') === 'true') updateTotals();
-});
-
-// Intentar cargar JSON local, si no está esperar carga manual
-// Cargar datos guardados en localStorage
-cargarDeLocalStorage();
-cargarJSONLocal();
-</script>
-</body></html><script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="c637e681-20f4-424c-8b8f-7bf5c8eae6f4" data-app-host="app.netlify.com"></script>
- : 'function toggleDisc() {
-  discountActive = !discountActive;
-  document.getElementById('disc-btn').classList.toggle('active');
-  if(discountActive) {
-    const pct = prompt('Porcentaje de descuento:', '10');
-    if(pct !== null) {
-      discountPercent = parseInt(pct) || 0;
-      document.getElementById('disc-btn').innerHTML = '🏷 Descuento: '+discountPercent+'%';
-    }
-  } else {
-    discountPercent = 0;
-    document.getElementById('disc-btn').innerHTML = '🏷 Descuento: OFF';
-  }
-  updateTotals();
-}
-
-// ========== TIEMPOS ==========
-let tiemposVisible = false;
-
-function toggleTiemposSection() {
-  tiemposVisible = !tiemposVisible;
-  document.getElementById('tiempos-wrap').classList.toggle('visible');
-  document.getElementById('tiempos-header').style.display = tiemposVisible ? 'flex' : 'none';
-  document.getElementById('btn-tiempos').innerHTML = tiemposVisible ? '⏱ Tiempos: ON' : '⏱ Tiempos: OFF';
-  document.getElementById('btn-tiempos').classList.toggle('active');
-  if(tiemposVisible && document.querySelectorAll('#tiempos-tbody tr').length === 0) {
-    addTiempoRow();
-  }
-}
-
-let tiemposCount = 0;
-
-function addTiempoRow() {
-  const tmpl = document.getElementById('tiempos-row-template');
-  const clone = tmpl.cloneNode(true);
-  clone.style.display = '';
-  clone.removeAttribute('id');
-  document.getElementById('tiempos-tbody').appendChild(clone);
-  tiemposCount++;
-  updateTotals();
-}
-
-// ========== CUOTAS ==========
-let cuotasVisible = false;
-
-function toggleCuotas() {
-  cuotasVisible = !cuotasVisible;
-  document.getElementById('cuotas-wrap').classList.toggle('visible');
-  document.getElementById('btn-cuotas').innerHTML = cuotasVisible ? '💰 Cuotas: ON' : '💰 Cuotas: OFF';
-  document.getElementById('btn-cuotas').classList.toggle('active');
-  if(cuotasVisible) updateTotals();
-}
-
-// ========== LOCAL STORAGE ==========
-function guardarEnLocalStorage() {
-  try {
-    const data = {
-      docNum: document.getElementById('doc-num').textContent,
-      clientTitle: document.getElementById('client-title').textContent,
-      projectTitle: document.getElementById('project-title').textContent,
-      docDate: document.getElementById('doc-date').textContent,
-      clienteRazon: document.getElementById('cliente-razon').textContent,
-      clienteTel: document.getElementById('cliente-tel').textContent,
-      clienteDir: document.getElementById('cliente-dir').textContent,
-      clienteLocalidad: document.getElementById('cliente-localidad').textContent,
-      formasPago: document.getElementById('formas-pago').innerHTML,
-      prodRows: [],
-      instRows: [],
-      tiemposRows: []
-    };
-    document.querySelectorAll('#prod-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.prodRows.push({
-        codigo: tds[1]?.textContent || '',
-        nombre: tds[2]?.textContent || '',
-        cant: tds[3]?.textContent || '1',
-        unit: tds[4]?.textContent || '0',
-        img: row.querySelector('img')?.src || ''
-      });
-    });
-    document.querySelectorAll('#inst-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.instRows.push({
-        desc: tds[0]?.textContent || '',
-        valor: tds[1]?.textContent || '0'
-      });
-    });
-    document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.tiemposRows.push({
-        tarea: tds[0]?.textContent || '',
-        horas: tds[1]?.textContent || '0'
-      });
-    });
-    localStorage.setItem('insolva-cotizacion', JSON.stringify(data));
-  } catch(e) { /* localStorage no disponible */ }
-}
-
-function cargarDeLocalStorage() {
-  try {
-    const raw = localStorage.getItem('insolva-cotizacion');
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    document.getElementById('doc-num').textContent = data.docNum || 'PRESUPUESTO N° 0000';
-    document.getElementById('client-title').textContent = data.clientTitle || 'NOMBRE DEL CLIENTE';
-    document.getElementById('project-title').textContent = data.projectTitle || 'PROYECTO / INSTALACIÓN';
-    document.getElementById('doc-date').textContent = data.docDate || 'FECHA: 26/08/2026';
-    document.getElementById('cliente-razon').textContent = data.clienteRazon || 'Nombre del cliente';
-    document.getElementById('cliente-tel').textContent = data.clienteTel || '+54 9 2901 64-1452';
-    document.getElementById('cliente-dir').textContent = data.clienteDir || 'Dirección de instalación';
-    document.getElementById('cliente-localidad').textContent = data.clienteLocalidad || 'Ushuaia, Tierra del Fuego';
-    if(data.formasPago) document.getElementById('formas-pago').innerHTML = data.formasPago;
-    // Restaurar productos
-    if(data.prodRows && data.prodRows.length > 0) {
-      const body = document.getElementById('prod-body');
-      body.innerHTML = '<tr id="prod-row-template" style="display:none">' + body.querySelector('#prod-row-template').innerHTML + '</tr>';
-      prodCount = 1;
-      data.prodRows.forEach((r, i) => {
-        addProdRow();
-        const rows = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])');
-        const tr = rows[rows.length-1];
-        const tds = tr.querySelectorAll('td');
-        if(tds.length >= 6) {
-          tds[1].textContent = r.codigo;
-          tds[2].textContent = r.nombre;
-          tds[3].textContent = r.cant;
-          tds[4].textContent = r.unit;
-          if(r.img && tds[0]) {
-            const img = document.createElement('img');
-            img.src = r.img;
-            img.className = 'img-thumb';
-            img.style.width = '54px'; img.style.height = '44px';
-            tds[0].innerHTML = ''; tds[0].appendChild(img);
-          }
-        }
-      });
-    }
-    // Restaurar instalación
-    if(data.instRows && data.instRows.length > 0) {
-      const body = document.getElementById('inst-body');
-      body.innerHTML = '<tr id="inst-row-template" style="display:none"><td contenteditable="true">Descripción del servicio</td><td class="r" contenteditable="true">0</td></tr>';
-      data.instRows.forEach((r, i) => {
-        if(i === 0) {
-          body.querySelector('tr:not([id*="template"])').querySelector('td').textContent = r.desc;
-          body.querySelector('tr:not([id*="template"])').querySelectorAll('td')[1].textContent = r.valor;
-        } else {
-          addInstRow();
-          const tr = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])')[i];
-          tr.querySelector('td').textContent = r.desc;
-          tr.querySelectorAll('td')[1].textContent = r.valor;
-        }
-      });
-    }
-    // Restaurar tiempos
-    if(data.tiemposRows && data.tiemposRows.length > 0) {
-      document.getElementById('tiempos-tbody').innerHTML = '';
-      data.tiemposRows.forEach(r => {
-        addTiempoRow();
-        const tr = document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"])');
-        const t = tr[tr.length-1];
-        t.querySelector('td').textContent = r.tarea;
-        t.querySelectorAll('td')[1].textContent = r.horas;
-      });
-    }
-    updateTotals();
-  } catch(e) { /* ignorar error de carga */ }
-}
-
-// ========== LIMPIAR ==========
-function limpiarTodo() {
-  if(!confirm('¿Borrar todo el contenido y empezar de cero?')) return;
-  localStorage.removeItem('insolva-cotizacion');
-  location.reload();
-}
-
-function loadProdImg(input, row) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = document.createElement('img');
-    img.src = e.target.result;
-    img.className = 'img-thumb';
-    img.style.width = '54px';
-    img.style.height = '44px';
-    const cell = input.closest('.img-cell') || input.parentElement.closest('td');
-    if(cell) { cell.innerHTML = ''; cell.appendChild(img); }
-  };
-  reader.readAsDataURL(file);
-}
-
-function loadLogoFile(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById('logo-img').src = e.target.result;
-    document.getElementById('logo-placeholder').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-}
-
-function printAndExport() { window.print(); }
-
-function saveHTMLWithLogo() {
-  const htmlContent = document.documentElement.outerHTML;
-  const blob = new Blob([htmlContent], {type: 'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'insolva-cotizacion.html'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// Carga desde GitHub raw (siempre actualizado, no necesita redeploy)
-// El Apps Script sube el JSON a GitHub automaticamente
-async function cargarJSONLocal() {
-  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json';
-  try {
-    const res = await fetch(GITHUB_RAW_URL + '?t=' + Date.now());  // cache bust
-    if (res.ok) {
-      const data = await res.json();
-      cargarCotizaciones(data);
-      document.getElementById('buscador-input').placeholder = `🔍 ${data.length} cotizaciones`;
-    }
-  } catch(e) {
-    // Fallback: intentar local
-    try {
-      const res2 = await fetch('cotizaciones_data.json');
-      if (res2.ok) {
-        const data = await res2.json();
-        cargarCotizaciones(data);
-      }
-    } catch(e2) {}
-  }
-}
-
-// Listen for content changes
-document.addEventListener('input', function(e) {
-  if(e.target.getAttribute('contenteditable') === 'true') updateTotals();
-});
-
-// Intentar cargar JSON local, si no está esperar carga manual
-// Cargar datos guardados en localStorage
-cargarDeLocalStorage();
-cargarJSONLocal();
-</script>
-</body></html><script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="c637e681-20f4-424c-8b8f-7bf5c8eae6f4" data-app-host="app.netlify.com"></script>
-;
+  const currSymbol = usdActive ? 'USD $' : '$';
   
   let prodTotal = 0;
   document.querySelectorAll('#prod-body tr:not([style*="display:none"])').forEach(row => {
@@ -1153,1007 +711,19 @@ cargarJSONLocal();
   if (usdActive) {
     totalEnPesos = Math.round(total * usdRate);
     tcRow.style.display = 'flex';
-    document.getElementById('tc-display').textContent = 'function toggleDisc() {
-  discountActive = !discountActive;
-  document.getElementById('disc-btn').classList.toggle('active');
-  if(discountActive) {
-    const pct = prompt('Porcentaje de descuento:', '10');
-    if(pct !== null) {
-      discountPercent = parseInt(pct) || 0;
-      document.getElementById('disc-btn').innerHTML = '🏷 Descuento: '+discountPercent+'%';
-    }
-  } else {
-    discountPercent = 0;
-    document.getElementById('disc-btn').innerHTML = '🏷 Descuento: OFF';
-  }
-  updateTotals();
-}
-
-// ========== TIEMPOS ==========
-let tiemposVisible = false;
-
-function toggleTiemposSection() {
-  tiemposVisible = !tiemposVisible;
-  document.getElementById('tiempos-wrap').classList.toggle('visible');
-  document.getElementById('tiempos-header').style.display = tiemposVisible ? 'flex' : 'none';
-  document.getElementById('btn-tiempos').innerHTML = tiemposVisible ? '⏱ Tiempos: ON' : '⏱ Tiempos: OFF';
-  document.getElementById('btn-tiempos').classList.toggle('active');
-  if(tiemposVisible && document.querySelectorAll('#tiempos-tbody tr').length === 0) {
-    addTiempoRow();
-  }
-}
-
-let tiemposCount = 0;
-
-function addTiempoRow() {
-  const tmpl = document.getElementById('tiempos-row-template');
-  const clone = tmpl.cloneNode(true);
-  clone.style.display = '';
-  clone.removeAttribute('id');
-  document.getElementById('tiempos-tbody').appendChild(clone);
-  tiemposCount++;
-  updateTotals();
-}
-
-// ========== CUOTAS ==========
-let cuotasVisible = false;
-
-function toggleCuotas() {
-  cuotasVisible = !cuotasVisible;
-  document.getElementById('cuotas-wrap').classList.toggle('visible');
-  document.getElementById('btn-cuotas').innerHTML = cuotasVisible ? '💰 Cuotas: ON' : '💰 Cuotas: OFF';
-  document.getElementById('btn-cuotas').classList.toggle('active');
-  if(cuotasVisible) updateTotals();
-}
-
-// ========== LOCAL STORAGE ==========
-function guardarEnLocalStorage() {
-  try {
-    const data = {
-      docNum: document.getElementById('doc-num').textContent,
-      clientTitle: document.getElementById('client-title').textContent,
-      projectTitle: document.getElementById('project-title').textContent,
-      docDate: document.getElementById('doc-date').textContent,
-      clienteRazon: document.getElementById('cliente-razon').textContent,
-      clienteTel: document.getElementById('cliente-tel').textContent,
-      clienteDir: document.getElementById('cliente-dir').textContent,
-      clienteLocalidad: document.getElementById('cliente-localidad').textContent,
-      formasPago: document.getElementById('formas-pago').innerHTML,
-      prodRows: [],
-      instRows: [],
-      tiemposRows: []
-    };
-    document.querySelectorAll('#prod-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.prodRows.push({
-        codigo: tds[1]?.textContent || '',
-        nombre: tds[2]?.textContent || '',
-        cant: tds[3]?.textContent || '1',
-        unit: tds[4]?.textContent || '0',
-        img: row.querySelector('img')?.src || ''
-      });
-    });
-    document.querySelectorAll('#inst-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.instRows.push({
-        desc: tds[0]?.textContent || '',
-        valor: tds[1]?.textContent || '0'
-      });
-    });
-    document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.tiemposRows.push({
-        tarea: tds[0]?.textContent || '',
-        horas: tds[1]?.textContent || '0'
-      });
-    });
-    localStorage.setItem('insolva-cotizacion', JSON.stringify(data));
-  } catch(e) { /* localStorage no disponible */ }
-}
-
-function cargarDeLocalStorage() {
-  try {
-    const raw = localStorage.getItem('insolva-cotizacion');
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    document.getElementById('doc-num').textContent = data.docNum || 'PRESUPUESTO N° 0000';
-    document.getElementById('client-title').textContent = data.clientTitle || 'NOMBRE DEL CLIENTE';
-    document.getElementById('project-title').textContent = data.projectTitle || 'PROYECTO / INSTALACIÓN';
-    document.getElementById('doc-date').textContent = data.docDate || 'FECHA: 26/08/2026';
-    document.getElementById('cliente-razon').textContent = data.clienteRazon || 'Nombre del cliente';
-    document.getElementById('cliente-tel').textContent = data.clienteTel || '+54 9 2901 64-1452';
-    document.getElementById('cliente-dir').textContent = data.clienteDir || 'Dirección de instalación';
-    document.getElementById('cliente-localidad').textContent = data.clienteLocalidad || 'Ushuaia, Tierra del Fuego';
-    if(data.formasPago) document.getElementById('formas-pago').innerHTML = data.formasPago;
-    // Restaurar productos
-    if(data.prodRows && data.prodRows.length > 0) {
-      const body = document.getElementById('prod-body');
-      body.innerHTML = '<tr id="prod-row-template" style="display:none">' + body.querySelector('#prod-row-template').innerHTML + '</tr>';
-      prodCount = 1;
-      data.prodRows.forEach((r, i) => {
-        addProdRow();
-        const rows = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])');
-        const tr = rows[rows.length-1];
-        const tds = tr.querySelectorAll('td');
-        if(tds.length >= 6) {
-          tds[1].textContent = r.codigo;
-          tds[2].textContent = r.nombre;
-          tds[3].textContent = r.cant;
-          tds[4].textContent = r.unit;
-          if(r.img && tds[0]) {
-            const img = document.createElement('img');
-            img.src = r.img;
-            img.className = 'img-thumb';
-            img.style.width = '54px'; img.style.height = '44px';
-            tds[0].innerHTML = ''; tds[0].appendChild(img);
-          }
-        }
-      });
-    }
-    // Restaurar instalación
-    if(data.instRows && data.instRows.length > 0) {
-      const body = document.getElementById('inst-body');
-      body.innerHTML = '<tr id="inst-row-template" style="display:none"><td contenteditable="true">Descripción del servicio</td><td class="r" contenteditable="true">0</td></tr>';
-      data.instRows.forEach((r, i) => {
-        if(i === 0) {
-          body.querySelector('tr:not([id*="template"])').querySelector('td').textContent = r.desc;
-          body.querySelector('tr:not([id*="template"])').querySelectorAll('td')[1].textContent = r.valor;
-        } else {
-          addInstRow();
-          const tr = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])')[i];
-          tr.querySelector('td').textContent = r.desc;
-          tr.querySelectorAll('td')[1].textContent = r.valor;
-        }
-      });
-    }
-    // Restaurar tiempos
-    if(data.tiemposRows && data.tiemposRows.length > 0) {
-      document.getElementById('tiempos-tbody').innerHTML = '';
-      data.tiemposRows.forEach(r => {
-        addTiempoRow();
-        const tr = document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"])');
-        const t = tr[tr.length-1];
-        t.querySelector('td').textContent = r.tarea;
-        t.querySelectorAll('td')[1].textContent = r.horas;
-      });
-    }
-    updateTotals();
-  } catch(e) { /* ignorar error de carga */ }
-}
-
-// ========== LIMPIAR ==========
-function limpiarTodo() {
-  if(!confirm('¿Borrar todo el contenido y empezar de cero?')) return;
-  localStorage.removeItem('insolva-cotizacion');
-  location.reload();
-}
-
-function loadProdImg(input, row) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = document.createElement('img');
-    img.src = e.target.result;
-    img.className = 'img-thumb';
-    img.style.width = '54px';
-    img.style.height = '44px';
-    const cell = input.closest('.img-cell') || input.parentElement.closest('td');
-    if(cell) { cell.innerHTML = ''; cell.appendChild(img); }
-  };
-  reader.readAsDataURL(file);
-}
-
-function loadLogoFile(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById('logo-img').src = e.target.result;
-    document.getElementById('logo-placeholder').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-}
-
-function printAndExport() { window.print(); }
-
-function saveHTMLWithLogo() {
-  const htmlContent = document.documentElement.outerHTML;
-  const blob = new Blob([htmlContent], {type: 'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'insolva-cotizacion.html'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// Carga desde GitHub raw (siempre actualizado, no necesita redeploy)
-// El Apps Script sube el JSON a GitHub automaticamente
-async function cargarJSONLocal() {
-  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json';
-  try {
-    const res = await fetch(GITHUB_RAW_URL + '?t=' + Date.now());  // cache bust
-    if (res.ok) {
-      const data = await res.json();
-      cargarCotizaciones(data);
-      document.getElementById('buscador-input').placeholder = `🔍 ${data.length} cotizaciones`;
-    }
-  } catch(e) {
-    // Fallback: intentar local
-    try {
-      const res2 = await fetch('cotizaciones_data.json');
-      if (res2.ok) {
-        const data = await res2.json();
-        cargarCotizaciones(data);
-      }
-    } catch(e2) {}
-  }
-}
-
-// Listen for content changes
-document.addEventListener('input', function(e) {
-  if(e.target.getAttribute('contenteditable') === 'true') updateTotals();
-});
-
-// Intentar cargar JSON local, si no está esperar carga manual
-// Cargar datos guardados en localStorage
-cargarDeLocalStorage();
-cargarJSONLocal();
-</script>
-</body></html><script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="c637e681-20f4-424c-8b8f-7bf5c8eae6f4" data-app-host="app.netlify.com"></script>
- + usdRate.toLocaleString('es-AR');
+    document.getElementById('tc-display').textContent = '$' + usdRate.toLocaleString('es-AR');
     totalArsRow.style.display = 'flex';
-    document.getElementById('total-ars-amount').textContent = 'function toggleDisc() {
-  discountActive = !discountActive;
-  document.getElementById('disc-btn').classList.toggle('active');
-  if(discountActive) {
-    const pct = prompt('Porcentaje de descuento:', '10');
-    if(pct !== null) {
-      discountPercent = parseInt(pct) || 0;
-      document.getElementById('disc-btn').innerHTML = '🏷 Descuento: '+discountPercent+'%';
-    }
-  } else {
-    discountPercent = 0;
-    document.getElementById('disc-btn').innerHTML = '🏷 Descuento: OFF';
-  }
-  updateTotals();
-}
-
-// ========== TIEMPOS ==========
-let tiemposVisible = false;
-
-function toggleTiemposSection() {
-  tiemposVisible = !tiemposVisible;
-  document.getElementById('tiempos-wrap').classList.toggle('visible');
-  document.getElementById('tiempos-header').style.display = tiemposVisible ? 'flex' : 'none';
-  document.getElementById('btn-tiempos').innerHTML = tiemposVisible ? '⏱ Tiempos: ON' : '⏱ Tiempos: OFF';
-  document.getElementById('btn-tiempos').classList.toggle('active');
-  if(tiemposVisible && document.querySelectorAll('#tiempos-tbody tr').length === 0) {
-    addTiempoRow();
-  }
-}
-
-let tiemposCount = 0;
-
-function addTiempoRow() {
-  const tmpl = document.getElementById('tiempos-row-template');
-  const clone = tmpl.cloneNode(true);
-  clone.style.display = '';
-  clone.removeAttribute('id');
-  document.getElementById('tiempos-tbody').appendChild(clone);
-  tiemposCount++;
-  updateTotals();
-}
-
-// ========== CUOTAS ==========
-let cuotasVisible = false;
-
-function toggleCuotas() {
-  cuotasVisible = !cuotasVisible;
-  document.getElementById('cuotas-wrap').classList.toggle('visible');
-  document.getElementById('btn-cuotas').innerHTML = cuotasVisible ? '💰 Cuotas: ON' : '💰 Cuotas: OFF';
-  document.getElementById('btn-cuotas').classList.toggle('active');
-  if(cuotasVisible) updateTotals();
-}
-
-// ========== LOCAL STORAGE ==========
-function guardarEnLocalStorage() {
-  try {
-    const data = {
-      docNum: document.getElementById('doc-num').textContent,
-      clientTitle: document.getElementById('client-title').textContent,
-      projectTitle: document.getElementById('project-title').textContent,
-      docDate: document.getElementById('doc-date').textContent,
-      clienteRazon: document.getElementById('cliente-razon').textContent,
-      clienteTel: document.getElementById('cliente-tel').textContent,
-      clienteDir: document.getElementById('cliente-dir').textContent,
-      clienteLocalidad: document.getElementById('cliente-localidad').textContent,
-      formasPago: document.getElementById('formas-pago').innerHTML,
-      prodRows: [],
-      instRows: [],
-      tiemposRows: []
-    };
-    document.querySelectorAll('#prod-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.prodRows.push({
-        codigo: tds[1]?.textContent || '',
-        nombre: tds[2]?.textContent || '',
-        cant: tds[3]?.textContent || '1',
-        unit: tds[4]?.textContent || '0',
-        img: row.querySelector('img')?.src || ''
-      });
-    });
-    document.querySelectorAll('#inst-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.instRows.push({
-        desc: tds[0]?.textContent || '',
-        valor: tds[1]?.textContent || '0'
-      });
-    });
-    document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.tiemposRows.push({
-        tarea: tds[0]?.textContent || '',
-        horas: tds[1]?.textContent || '0'
-      });
-    });
-    localStorage.setItem('insolva-cotizacion', JSON.stringify(data));
-  } catch(e) { /* localStorage no disponible */ }
-}
-
-function cargarDeLocalStorage() {
-  try {
-    const raw = localStorage.getItem('insolva-cotizacion');
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    document.getElementById('doc-num').textContent = data.docNum || 'PRESUPUESTO N° 0000';
-    document.getElementById('client-title').textContent = data.clientTitle || 'NOMBRE DEL CLIENTE';
-    document.getElementById('project-title').textContent = data.projectTitle || 'PROYECTO / INSTALACIÓN';
-    document.getElementById('doc-date').textContent = data.docDate || 'FECHA: 26/08/2026';
-    document.getElementById('cliente-razon').textContent = data.clienteRazon || 'Nombre del cliente';
-    document.getElementById('cliente-tel').textContent = data.clienteTel || '+54 9 2901 64-1452';
-    document.getElementById('cliente-dir').textContent = data.clienteDir || 'Dirección de instalación';
-    document.getElementById('cliente-localidad').textContent = data.clienteLocalidad || 'Ushuaia, Tierra del Fuego';
-    if(data.formasPago) document.getElementById('formas-pago').innerHTML = data.formasPago;
-    // Restaurar productos
-    if(data.prodRows && data.prodRows.length > 0) {
-      const body = document.getElementById('prod-body');
-      body.innerHTML = '<tr id="prod-row-template" style="display:none">' + body.querySelector('#prod-row-template').innerHTML + '</tr>';
-      prodCount = 1;
-      data.prodRows.forEach((r, i) => {
-        addProdRow();
-        const rows = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])');
-        const tr = rows[rows.length-1];
-        const tds = tr.querySelectorAll('td');
-        if(tds.length >= 6) {
-          tds[1].textContent = r.codigo;
-          tds[2].textContent = r.nombre;
-          tds[3].textContent = r.cant;
-          tds[4].textContent = r.unit;
-          if(r.img && tds[0]) {
-            const img = document.createElement('img');
-            img.src = r.img;
-            img.className = 'img-thumb';
-            img.style.width = '54px'; img.style.height = '44px';
-            tds[0].innerHTML = ''; tds[0].appendChild(img);
-          }
-        }
-      });
-    }
-    // Restaurar instalación
-    if(data.instRows && data.instRows.length > 0) {
-      const body = document.getElementById('inst-body');
-      body.innerHTML = '<tr id="inst-row-template" style="display:none"><td contenteditable="true">Descripción del servicio</td><td class="r" contenteditable="true">0</td></tr>';
-      data.instRows.forEach((r, i) => {
-        if(i === 0) {
-          body.querySelector('tr:not([id*="template"])').querySelector('td').textContent = r.desc;
-          body.querySelector('tr:not([id*="template"])').querySelectorAll('td')[1].textContent = r.valor;
-        } else {
-          addInstRow();
-          const tr = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])')[i];
-          tr.querySelector('td').textContent = r.desc;
-          tr.querySelectorAll('td')[1].textContent = r.valor;
-        }
-      });
-    }
-    // Restaurar tiempos
-    if(data.tiemposRows && data.tiemposRows.length > 0) {
-      document.getElementById('tiempos-tbody').innerHTML = '';
-      data.tiemposRows.forEach(r => {
-        addTiempoRow();
-        const tr = document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"])');
-        const t = tr[tr.length-1];
-        t.querySelector('td').textContent = r.tarea;
-        t.querySelectorAll('td')[1].textContent = r.horas;
-      });
-    }
-    updateTotals();
-  } catch(e) { /* ignorar error de carga */ }
-}
-
-// ========== LIMPIAR ==========
-function limpiarTodo() {
-  if(!confirm('¿Borrar todo el contenido y empezar de cero?')) return;
-  localStorage.removeItem('insolva-cotizacion');
-  location.reload();
-}
-
-function loadProdImg(input, row) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = document.createElement('img');
-    img.src = e.target.result;
-    img.className = 'img-thumb';
-    img.style.width = '54px';
-    img.style.height = '44px';
-    const cell = input.closest('.img-cell') || input.parentElement.closest('td');
-    if(cell) { cell.innerHTML = ''; cell.appendChild(img); }
-  };
-  reader.readAsDataURL(file);
-}
-
-function loadLogoFile(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById('logo-img').src = e.target.result;
-    document.getElementById('logo-placeholder').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-}
-
-function printAndExport() { window.print(); }
-
-function saveHTMLWithLogo() {
-  const htmlContent = document.documentElement.outerHTML;
-  const blob = new Blob([htmlContent], {type: 'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'insolva-cotizacion.html'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// Carga desde GitHub raw (siempre actualizado, no necesita redeploy)
-// El Apps Script sube el JSON a GitHub automaticamente
-async function cargarJSONLocal() {
-  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json';
-  try {
-    const res = await fetch(GITHUB_RAW_URL + '?t=' + Date.now());  // cache bust
-    if (res.ok) {
-      const data = await res.json();
-      cargarCotizaciones(data);
-      document.getElementById('buscador-input').placeholder = `🔍 ${data.length} cotizaciones`;
-    }
-  } catch(e) {
-    // Fallback: intentar local
-    try {
-      const res2 = await fetch('cotizaciones_data.json');
-      if (res2.ok) {
-        const data = await res2.json();
-        cargarCotizaciones(data);
-      }
-    } catch(e2) {}
-  }
-}
-
-// Listen for content changes
-document.addEventListener('input', function(e) {
-  if(e.target.getAttribute('contenteditable') === 'true') updateTotals();
-});
-
-// Intentar cargar JSON local, si no está esperar carga manual
-// Cargar datos guardados en localStorage
-cargarDeLocalStorage();
-cargarJSONLocal();
-</script>
-</body></html><script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="c637e681-20f4-424c-8b8f-7bf5c8eae6f4" data-app-host="app.netlify.com"></script>
- + totalEnPesos.toLocaleString('es-AR');
+    document.getElementById('total-ars-amount').textContent = '$' + totalEnPesos.toLocaleString('es-AR');
   } else {
     tcRow.style.display = 'none';
     totalArsRow.style.display = 'none';
   }
 
-  // Cuotas (se calculan sobre el total en Pesos para reflejar cuotas reales en moneda local o USD según corresponda)
+  // Cuotas
   const c3 = Math.round(totalEnPesos / 3);
   const c6 = Math.round(totalEnPesos / 6);
-  document.getElementById('cuota-3').textContent = 'function toggleDisc() {
-  discountActive = !discountActive;
-  document.getElementById('disc-btn').classList.toggle('active');
-  if(discountActive) {
-    const pct = prompt('Porcentaje de descuento:', '10');
-    if(pct !== null) {
-      discountPercent = parseInt(pct) || 0;
-      document.getElementById('disc-btn').innerHTML = '🏷 Descuento: '+discountPercent+'%';
-    }
-  } else {
-    discountPercent = 0;
-    document.getElementById('disc-btn').innerHTML = '🏷 Descuento: OFF';
-  }
-  updateTotals();
-}
-
-// ========== TIEMPOS ==========
-let tiemposVisible = false;
-
-function toggleTiemposSection() {
-  tiemposVisible = !tiemposVisible;
-  document.getElementById('tiempos-wrap').classList.toggle('visible');
-  document.getElementById('tiempos-header').style.display = tiemposVisible ? 'flex' : 'none';
-  document.getElementById('btn-tiempos').innerHTML = tiemposVisible ? '⏱ Tiempos: ON' : '⏱ Tiempos: OFF';
-  document.getElementById('btn-tiempos').classList.toggle('active');
-  if(tiemposVisible && document.querySelectorAll('#tiempos-tbody tr').length === 0) {
-    addTiempoRow();
-  }
-}
-
-let tiemposCount = 0;
-
-function addTiempoRow() {
-  const tmpl = document.getElementById('tiempos-row-template');
-  const clone = tmpl.cloneNode(true);
-  clone.style.display = '';
-  clone.removeAttribute('id');
-  document.getElementById('tiempos-tbody').appendChild(clone);
-  tiemposCount++;
-  updateTotals();
-}
-
-// ========== CUOTAS ==========
-let cuotasVisible = false;
-
-function toggleCuotas() {
-  cuotasVisible = !cuotasVisible;
-  document.getElementById('cuotas-wrap').classList.toggle('visible');
-  document.getElementById('btn-cuotas').innerHTML = cuotasVisible ? '💰 Cuotas: ON' : '💰 Cuotas: OFF';
-  document.getElementById('btn-cuotas').classList.toggle('active');
-  if(cuotasVisible) updateTotals();
-}
-
-// ========== LOCAL STORAGE ==========
-function guardarEnLocalStorage() {
-  try {
-    const data = {
-      docNum: document.getElementById('doc-num').textContent,
-      clientTitle: document.getElementById('client-title').textContent,
-      projectTitle: document.getElementById('project-title').textContent,
-      docDate: document.getElementById('doc-date').textContent,
-      clienteRazon: document.getElementById('cliente-razon').textContent,
-      clienteTel: document.getElementById('cliente-tel').textContent,
-      clienteDir: document.getElementById('cliente-dir').textContent,
-      clienteLocalidad: document.getElementById('cliente-localidad').textContent,
-      formasPago: document.getElementById('formas-pago').innerHTML,
-      prodRows: [],
-      instRows: [],
-      tiemposRows: []
-    };
-    document.querySelectorAll('#prod-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.prodRows.push({
-        codigo: tds[1]?.textContent || '',
-        nombre: tds[2]?.textContent || '',
-        cant: tds[3]?.textContent || '1',
-        unit: tds[4]?.textContent || '0',
-        img: row.querySelector('img')?.src || ''
-      });
-    });
-    document.querySelectorAll('#inst-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.instRows.push({
-        desc: tds[0]?.textContent || '',
-        valor: tds[1]?.textContent || '0'
-      });
-    });
-    document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.tiemposRows.push({
-        tarea: tds[0]?.textContent || '',
-        horas: tds[1]?.textContent || '0'
-      });
-    });
-    localStorage.setItem('insolva-cotizacion', JSON.stringify(data));
-  } catch(e) { /* localStorage no disponible */ }
-}
-
-function cargarDeLocalStorage() {
-  try {
-    const raw = localStorage.getItem('insolva-cotizacion');
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    document.getElementById('doc-num').textContent = data.docNum || 'PRESUPUESTO N° 0000';
-    document.getElementById('client-title').textContent = data.clientTitle || 'NOMBRE DEL CLIENTE';
-    document.getElementById('project-title').textContent = data.projectTitle || 'PROYECTO / INSTALACIÓN';
-    document.getElementById('doc-date').textContent = data.docDate || 'FECHA: 26/08/2026';
-    document.getElementById('cliente-razon').textContent = data.clienteRazon || 'Nombre del cliente';
-    document.getElementById('cliente-tel').textContent = data.clienteTel || '+54 9 2901 64-1452';
-    document.getElementById('cliente-dir').textContent = data.clienteDir || 'Dirección de instalación';
-    document.getElementById('cliente-localidad').textContent = data.clienteLocalidad || 'Ushuaia, Tierra del Fuego';
-    if(data.formasPago) document.getElementById('formas-pago').innerHTML = data.formasPago;
-    // Restaurar productos
-    if(data.prodRows && data.prodRows.length > 0) {
-      const body = document.getElementById('prod-body');
-      body.innerHTML = '<tr id="prod-row-template" style="display:none">' + body.querySelector('#prod-row-template').innerHTML + '</tr>';
-      prodCount = 1;
-      data.prodRows.forEach((r, i) => {
-        addProdRow();
-        const rows = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])');
-        const tr = rows[rows.length-1];
-        const tds = tr.querySelectorAll('td');
-        if(tds.length >= 6) {
-          tds[1].textContent = r.codigo;
-          tds[2].textContent = r.nombre;
-          tds[3].textContent = r.cant;
-          tds[4].textContent = r.unit;
-          if(r.img && tds[0]) {
-            const img = document.createElement('img');
-            img.src = r.img;
-            img.className = 'img-thumb';
-            img.style.width = '54px'; img.style.height = '44px';
-            tds[0].innerHTML = ''; tds[0].appendChild(img);
-          }
-        }
-      });
-    }
-    // Restaurar instalación
-    if(data.instRows && data.instRows.length > 0) {
-      const body = document.getElementById('inst-body');
-      body.innerHTML = '<tr id="inst-row-template" style="display:none"><td contenteditable="true">Descripción del servicio</td><td class="r" contenteditable="true">0</td></tr>';
-      data.instRows.forEach((r, i) => {
-        if(i === 0) {
-          body.querySelector('tr:not([id*="template"])').querySelector('td').textContent = r.desc;
-          body.querySelector('tr:not([id*="template"])').querySelectorAll('td')[1].textContent = r.valor;
-        } else {
-          addInstRow();
-          const tr = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])')[i];
-          tr.querySelector('td').textContent = r.desc;
-          tr.querySelectorAll('td')[1].textContent = r.valor;
-        }
-      });
-    }
-    // Restaurar tiempos
-    if(data.tiemposRows && data.tiemposRows.length > 0) {
-      document.getElementById('tiempos-tbody').innerHTML = '';
-      data.tiemposRows.forEach(r => {
-        addTiempoRow();
-        const tr = document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"])');
-        const t = tr[tr.length-1];
-        t.querySelector('td').textContent = r.tarea;
-        t.querySelectorAll('td')[1].textContent = r.horas;
-      });
-    }
-    updateTotals();
-  } catch(e) { /* ignorar error de carga */ }
-}
-
-// ========== LIMPIAR ==========
-function limpiarTodo() {
-  if(!confirm('¿Borrar todo el contenido y empezar de cero?')) return;
-  localStorage.removeItem('insolva-cotizacion');
-  location.reload();
-}
-
-function loadProdImg(input, row) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = document.createElement('img');
-    img.src = e.target.result;
-    img.className = 'img-thumb';
-    img.style.width = '54px';
-    img.style.height = '44px';
-    const cell = input.closest('.img-cell') || input.parentElement.closest('td');
-    if(cell) { cell.innerHTML = ''; cell.appendChild(img); }
-  };
-  reader.readAsDataURL(file);
-}
-
-function loadLogoFile(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById('logo-img').src = e.target.result;
-    document.getElementById('logo-placeholder').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-}
-
-function printAndExport() { window.print(); }
-
-function saveHTMLWithLogo() {
-  const htmlContent = document.documentElement.outerHTML;
-  const blob = new Blob([htmlContent], {type: 'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'insolva-cotizacion.html'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// Carga desde GitHub raw (siempre actualizado, no necesita redeploy)
-// El Apps Script sube el JSON a GitHub automaticamente
-async function cargarJSONLocal() {
-  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json';
-  try {
-    const res = await fetch(GITHUB_RAW_URL + '?t=' + Date.now());  // cache bust
-    if (res.ok) {
-      const data = await res.json();
-      cargarCotizaciones(data);
-      document.getElementById('buscador-input').placeholder = `🔍 ${data.length} cotizaciones`;
-    }
-  } catch(e) {
-    // Fallback: intentar local
-    try {
-      const res2 = await fetch('cotizaciones_data.json');
-      if (res2.ok) {
-        const data = await res2.json();
-        cargarCotizaciones(data);
-      }
-    } catch(e2) {}
-  }
-}
-
-// Listen for content changes
-document.addEventListener('input', function(e) {
-  if(e.target.getAttribute('contenteditable') === 'true') updateTotals();
-});
-
-// Intentar cargar JSON local, si no está esperar carga manual
-// Cargar datos guardados en localStorage
-cargarDeLocalStorage();
-cargarJSONLocal();
-</script>
-</body></html><script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="c637e681-20f4-424c-8b8f-7bf5c8eae6f4" data-app-host="app.netlify.com"></script>
-+c3.toLocaleString('es-AR')+' x 3';
-  document.getElementById('cuota-6').textContent = 'function toggleDisc() {
-  discountActive = !discountActive;
-  document.getElementById('disc-btn').classList.toggle('active');
-  if(discountActive) {
-    const pct = prompt('Porcentaje de descuento:', '10');
-    if(pct !== null) {
-      discountPercent = parseInt(pct) || 0;
-      document.getElementById('disc-btn').innerHTML = '🏷 Descuento: '+discountPercent+'%';
-    }
-  } else {
-    discountPercent = 0;
-    document.getElementById('disc-btn').innerHTML = '🏷 Descuento: OFF';
-  }
-  updateTotals();
-}
-
-// ========== TIEMPOS ==========
-let tiemposVisible = false;
-
-function toggleTiemposSection() {
-  tiemposVisible = !tiemposVisible;
-  document.getElementById('tiempos-wrap').classList.toggle('visible');
-  document.getElementById('tiempos-header').style.display = tiemposVisible ? 'flex' : 'none';
-  document.getElementById('btn-tiempos').innerHTML = tiemposVisible ? '⏱ Tiempos: ON' : '⏱ Tiempos: OFF';
-  document.getElementById('btn-tiempos').classList.toggle('active');
-  if(tiemposVisible && document.querySelectorAll('#tiempos-tbody tr').length === 0) {
-    addTiempoRow();
-  }
-}
-
-let tiemposCount = 0;
-
-function addTiempoRow() {
-  const tmpl = document.getElementById('tiempos-row-template');
-  const clone = tmpl.cloneNode(true);
-  clone.style.display = '';
-  clone.removeAttribute('id');
-  document.getElementById('tiempos-tbody').appendChild(clone);
-  tiemposCount++;
-  updateTotals();
-}
-
-// ========== CUOTAS ==========
-let cuotasVisible = false;
-
-function toggleCuotas() {
-  cuotasVisible = !cuotasVisible;
-  document.getElementById('cuotas-wrap').classList.toggle('visible');
-  document.getElementById('btn-cuotas').innerHTML = cuotasVisible ? '💰 Cuotas: ON' : '💰 Cuotas: OFF';
-  document.getElementById('btn-cuotas').classList.toggle('active');
-  if(cuotasVisible) updateTotals();
-}
-
-// ========== LOCAL STORAGE ==========
-function guardarEnLocalStorage() {
-  try {
-    const data = {
-      docNum: document.getElementById('doc-num').textContent,
-      clientTitle: document.getElementById('client-title').textContent,
-      projectTitle: document.getElementById('project-title').textContent,
-      docDate: document.getElementById('doc-date').textContent,
-      clienteRazon: document.getElementById('cliente-razon').textContent,
-      clienteTel: document.getElementById('cliente-tel').textContent,
-      clienteDir: document.getElementById('cliente-dir').textContent,
-      clienteLocalidad: document.getElementById('cliente-localidad').textContent,
-      formasPago: document.getElementById('formas-pago').innerHTML,
-      prodRows: [],
-      instRows: [],
-      tiemposRows: []
-    };
-    document.querySelectorAll('#prod-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.prodRows.push({
-        codigo: tds[1]?.textContent || '',
-        nombre: tds[2]?.textContent || '',
-        cant: tds[3]?.textContent || '1',
-        unit: tds[4]?.textContent || '0',
-        img: row.querySelector('img')?.src || ''
-      });
-    });
-    document.querySelectorAll('#inst-body tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.instRows.push({
-        desc: tds[0]?.textContent || '',
-        valor: tds[1]?.textContent || '0'
-      });
-    });
-    document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"]):not([id*="template"])').forEach(row => {
-      const tds = row.querySelectorAll('td');
-      data.tiemposRows.push({
-        tarea: tds[0]?.textContent || '',
-        horas: tds[1]?.textContent || '0'
-      });
-    });
-    localStorage.setItem('insolva-cotizacion', JSON.stringify(data));
-  } catch(e) { /* localStorage no disponible */ }
-}
-
-function cargarDeLocalStorage() {
-  try {
-    const raw = localStorage.getItem('insolva-cotizacion');
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    document.getElementById('doc-num').textContent = data.docNum || 'PRESUPUESTO N° 0000';
-    document.getElementById('client-title').textContent = data.clientTitle || 'NOMBRE DEL CLIENTE';
-    document.getElementById('project-title').textContent = data.projectTitle || 'PROYECTO / INSTALACIÓN';
-    document.getElementById('doc-date').textContent = data.docDate || 'FECHA: 26/08/2026';
-    document.getElementById('cliente-razon').textContent = data.clienteRazon || 'Nombre del cliente';
-    document.getElementById('cliente-tel').textContent = data.clienteTel || '+54 9 2901 64-1452';
-    document.getElementById('cliente-dir').textContent = data.clienteDir || 'Dirección de instalación';
-    document.getElementById('cliente-localidad').textContent = data.clienteLocalidad || 'Ushuaia, Tierra del Fuego';
-    if(data.formasPago) document.getElementById('formas-pago').innerHTML = data.formasPago;
-    // Restaurar productos
-    if(data.prodRows && data.prodRows.length > 0) {
-      const body = document.getElementById('prod-body');
-      body.innerHTML = '<tr id="prod-row-template" style="display:none">' + body.querySelector('#prod-row-template').innerHTML + '</tr>';
-      prodCount = 1;
-      data.prodRows.forEach((r, i) => {
-        addProdRow();
-        const rows = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])');
-        const tr = rows[rows.length-1];
-        const tds = tr.querySelectorAll('td');
-        if(tds.length >= 6) {
-          tds[1].textContent = r.codigo;
-          tds[2].textContent = r.nombre;
-          tds[3].textContent = r.cant;
-          tds[4].textContent = r.unit;
-          if(r.img && tds[0]) {
-            const img = document.createElement('img');
-            img.src = r.img;
-            img.className = 'img-thumb';
-            img.style.width = '54px'; img.style.height = '44px';
-            tds[0].innerHTML = ''; tds[0].appendChild(img);
-          }
-        }
-      });
-    }
-    // Restaurar instalación
-    if(data.instRows && data.instRows.length > 0) {
-      const body = document.getElementById('inst-body');
-      body.innerHTML = '<tr id="inst-row-template" style="display:none"><td contenteditable="true">Descripción del servicio</td><td class="r" contenteditable="true">0</td></tr>';
-      data.instRows.forEach((r, i) => {
-        if(i === 0) {
-          body.querySelector('tr:not([id*="template"])').querySelector('td').textContent = r.desc;
-          body.querySelector('tr:not([id*="template"])').querySelectorAll('td')[1].textContent = r.valor;
-        } else {
-          addInstRow();
-          const tr = body.querySelectorAll('tr:not([style*="display:none"]):not([id*="template"])')[i];
-          tr.querySelector('td').textContent = r.desc;
-          tr.querySelectorAll('td')[1].textContent = r.valor;
-        }
-      });
-    }
-    // Restaurar tiempos
-    if(data.tiemposRows && data.tiemposRows.length > 0) {
-      document.getElementById('tiempos-tbody').innerHTML = '';
-      data.tiemposRows.forEach(r => {
-        addTiempoRow();
-        const tr = document.querySelectorAll('#tiempos-tbody tr:not([style*="display:none"])');
-        const t = tr[tr.length-1];
-        t.querySelector('td').textContent = r.tarea;
-        t.querySelectorAll('td')[1].textContent = r.horas;
-      });
-    }
-    updateTotals();
-  } catch(e) { /* ignorar error de carga */ }
-}
-
-// ========== LIMPIAR ==========
-function limpiarTodo() {
-  if(!confirm('¿Borrar todo el contenido y empezar de cero?')) return;
-  localStorage.removeItem('insolva-cotizacion');
-  location.reload();
-}
-
-function loadProdImg(input, row) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = document.createElement('img');
-    img.src = e.target.result;
-    img.className = 'img-thumb';
-    img.style.width = '54px';
-    img.style.height = '44px';
-    const cell = input.closest('.img-cell') || input.parentElement.closest('td');
-    if(cell) { cell.innerHTML = ''; cell.appendChild(img); }
-  };
-  reader.readAsDataURL(file);
-}
-
-function loadLogoFile(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById('logo-img').src = e.target.result;
-    document.getElementById('logo-placeholder').style.display = 'none';
-  };
-  reader.readAsDataURL(file);
-}
-
-function printAndExport() { window.print(); }
-
-function saveHTMLWithLogo() {
-  const htmlContent = document.documentElement.outerHTML;
-  const blob = new Blob([htmlContent], {type: 'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'insolva-cotizacion.html'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// Carga desde GitHub raw (siempre actualizado, no necesita redeploy)
-// El Apps Script sube el JSON a GitHub automaticamente
-async function cargarJSONLocal() {
-  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json';
-  try {
-    const res = await fetch(GITHUB_RAW_URL + '?t=' + Date.now());  // cache bust
-    if (res.ok) {
-      const data = await res.json();
-      cargarCotizaciones(data);
-      document.getElementById('buscador-input').placeholder = `🔍 ${data.length} cotizaciones`;
-    }
-  } catch(e) {
-    // Fallback: intentar local
-    try {
-      const res2 = await fetch('cotizaciones_data.json');
-      if (res2.ok) {
-        const data = await res2.json();
-        cargarCotizaciones(data);
-      }
-    } catch(e2) {}
-  }
-}
-
-// Listen for content changes
-document.addEventListener('input', function(e) {
-  if(e.target.getAttribute('contenteditable') === 'true') updateTotals();
-});
-
-// Intentar cargar JSON local, si no está esperar carga manual
-// Cargar datos guardados en localStorage
-cargarDeLocalStorage();
-cargarJSONLocal();
-</script>
-</body></html><script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="c637e681-20f4-424c-8b8f-7bf5c8eae6f4" data-app-host="app.netlify.com"></script>
-+c6.toLocaleString('es-AR')+' x 6';
+  document.getElementById('cuota-3').textContent = '$'+c3.toLocaleString('es-AR')+' x 3';
+  document.getElementById('cuota-6').textContent = '$'+c6.toLocaleString('es-AR')+' x 6';
 
   // Horas tiempos
   let hsTotal = 0;
@@ -2167,6 +737,7 @@ cargarJSONLocal();
 
   guardarEnLocalStorage();
 }
+
 function toggleDisc() {
   discountActive = !discountActive;
   document.getElementById('disc-btn').classList.toggle('active');
@@ -2275,7 +846,7 @@ function cargarDeLocalStorage() {
     document.getElementById('project-title').textContent = data.projectTitle || 'PROYECTO / INSTALACIÓN';
     document.getElementById('doc-date').textContent = data.docDate || 'FECHA: 26/08/2026';
     document.getElementById('cliente-razon').textContent = data.clienteRazon || 'Nombre del cliente';
-    document.getElementById('cliente-tel').textContent = data.clienteTel || '+54 9 2901 64-1452';
+    document.getElementById('cliente-tel').textContent = data.clienteTel || '+54 9 2901 000000';
     document.getElementById('cliente-dir').textContent = data.clienteDir || 'Dirección de instalación';
     document.getElementById('cliente-localidad').textContent = data.clienteLocalidad || 'Ushuaia, Tierra del Fuego';
     if(data.formasPago) document.getElementById('formas-pago').innerHTML = data.formasPago;
@@ -2383,23 +954,27 @@ function saveHTMLWithLogo() {
 // Carga desde GitHub raw (siempre actualizado, no necesita redeploy)
 // El Apps Script sube el JSON a GitHub automaticamente
 async function cargarJSONLocal() {
-  const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json';
-  try {
-    const res = await fetch(GITHUB_RAW_URL + '?t=' + Date.now());  // cache bust
-    if (res.ok) {
-      const data = await res.json();
-      cargarCotizaciones(data);
-      document.getElementById('buscador-input').placeholder = `🔍 ${data.length} cotizaciones`;
-    }
-  } catch(e) {
-    // Fallback: intentar local
+  const urls = [
+    'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json',
+    'cotizaciones_data.json',
+    'cotizacion/cotizaciones_data.json',
+    'cotizaciones/cotizaciones_data.json'
+  ];
+  
+  for (const url of urls) {
     try {
-      const res2 = await fetch('cotizaciones_data.json');
-      if (res2.ok) {
-        const data = await res2.json();
-        cargarCotizaciones(data);
+      const res = await fetch(url + (url.includes('http') ? '?t=' + Date.now() : ''));
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          cargarCotizaciones(data);
+          console.log('Cotizaciones cargadas desde:', url, 'Total:', data.length);
+          return;
+        }
       }
-    } catch(e2) {}
+    } catch(err) {
+      console.warn('Fallo cargar desde ' + url, err);
+    }
   }
 }
 
@@ -2413,4 +988,4 @@ document.addEventListener('input', function(e) {
 cargarDeLocalStorage();
 cargarJSONLocal();
 </script>
-</body></html><script async src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="c637e681-20f4-424c-8b8f-7bf5c8eae6f4" data-app-host="app.netlify.com"></script>
+</body></html>
