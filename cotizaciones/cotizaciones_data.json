@@ -8,6 +8,7 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "3 cam Hilook 4MP + NVR 4CH + HDD 2TB",
         "cant": 1,
         "unit": 1143000,
@@ -17,7 +18,7 @@
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 615
+        "valor": 615000
       }
     ],
     "tiempos": [
@@ -27,8 +28,8 @@
       }
     ],
     "anticipo": 1143000,
-    "saldo": 615,
-    "total": 1143615
+    "saldo": 615000,
+    "total": 1758000
   },
   {
     "num": 2,
@@ -39,6 +40,7 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "4 cam Hilook 4MP + NVR 4CH + HDD 4TB",
         "cant": 1,
         "unit": 1478000,
@@ -48,7 +50,7 @@
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 790
+        "valor": 790000
       }
     ],
     "tiempos": [
@@ -58,8 +60,8 @@
       }
     ],
     "anticipo": 1478000,
-    "saldo": 790,
-    "total": 1478790
+    "saldo": 790000,
+    "total": 2268000
   },
   {
     "num": 3,
@@ -70,16 +72,17 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "Kit AX Home Hikvision 16Z + sensor PIR + abertura + sirena",
         "cant": 1,
-        "unit": 479,
-        "subtotal": 479
+        "unit": 479000,
+        "subtotal": 479000
       }
     ],
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 96
+        "valor": 96000
       }
     ],
     "tiempos": [
@@ -88,9 +91,9 @@
         "horas": 4
       }
     ],
-    "anticipo": 479,
-    "saldo": 96,
-    "total": 575
+    "anticipo": 479000,
+    "saldo": 96000,
+    "total": 575000
   },
   {
     "num": 4,
@@ -101,16 +104,17 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "1 cam Hilook 2MP POE con altavoz",
         "cant": 1,
-        "unit": 154,
-        "subtotal": 154
+        "unit": 154000,
+        "subtotal": 154000
       }
     ],
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 65
+        "valor": 65000
       }
     ],
     "tiempos": [
@@ -119,9 +123,9 @@
         "horas": 4
       }
     ],
-    "anticipo": 154,
-    "saldo": 65,
-    "total": 219
+    "anticipo": 154000,
+    "saldo": 65000,
+    "total": 219000
   },
   {
     "num": 5,
@@ -132,16 +136,17 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "1 cam PTZ Hilook 4MP motorizado con zoom",
         "cant": 1,
-        "unit": 347,
-        "subtotal": 347
+        "unit": 347000,
+        "subtotal": 347000
       }
     ],
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 65
+        "valor": 65000
       }
     ],
     "tiempos": [
@@ -150,9 +155,9 @@
         "horas": 4
       }
     ],
-    "anticipo": 347,
-    "saldo": 65,
-    "total": 412
+    "anticipo": 347000,
+    "saldo": 65000,
+    "total": 412000
   },
   {
     "num": 6,
@@ -163,16 +168,17 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "2 cam Hilook 2MP + NVR 4CH + HDD 1TB",
         "cant": 1,
-        "unit": 766,
-        "subtotal": 766
+        "unit": 766000,
+        "subtotal": 766000
       }
     ],
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 365
+        "valor": 365000
       }
     ],
     "tiempos": [
@@ -181,9 +187,9 @@
         "horas": 4
       }
     ],
-    "anticipo": 766,
-    "saldo": 365,
-    "total": 1131
+    "anticipo": 766000,
+    "saldo": 365000,
+    "total": 1131000
   },
   {
     "num": 7,
@@ -194,6 +200,7 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "3 cam Hilook 4MP + NVR 4CH + HDD 2TB",
         "cant": 1,
         "unit": 1096900,
@@ -203,7 +210,7 @@
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 530
+        "valor": 530000
       }
     ],
     "tiempos": [
@@ -213,8 +220,8 @@
       }
     ],
     "anticipo": 1096900,
-    "saldo": 530,
-    "total": 1097430
+    "saldo": 530000,
+    "total": 1626900
   },
   {
     "num": 8,
@@ -225,6 +232,7 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "4 cam mix (3 bullet + 1 turret) + NVR Hikvision Acusense + 4TB + switch PoE",
         "cant": 1,
         "unit": 1791500,
@@ -234,7 +242,7 @@
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 735
+        "valor": 735000
       }
     ],
     "tiempos": [
@@ -244,8 +252,8 @@
       }
     ],
     "anticipo": 1791500,
-    "saldo": 735,
-    "total": 1792235
+    "saldo": 735000,
+    "total": 2526500
   },
   {
     "num": 9,
@@ -256,16 +264,17 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "Kit 4 cam bullet WiFi 4MP + microSD 512GB",
         "cant": 1,
-        "unit": 508,
-        "subtotal": 508
+        "unit": 508000,
+        "subtotal": 508000
       }
     ],
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 240
+        "valor": 240000
       }
     ],
     "tiempos": [
@@ -274,9 +283,9 @@
         "horas": 4
       }
     ],
-    "anticipo": 508,
-    "saldo": 240,
-    "total": 748
+    "anticipo": 508000,
+    "saldo": 240000,
+    "total": 748000
   },
   {
     "num": 10,
@@ -287,6 +296,7 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "2 AP Omada AX1800 + controlador + switch PoE",
         "cant": 1,
         "unit": 1065000,
@@ -296,7 +306,7 @@
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 260
+        "valor": 260000
       }
     ],
     "tiempos": [
@@ -306,8 +316,8 @@
       }
     ],
     "anticipo": 1065000,
-    "saldo": 260,
-    "total": 1065260
+    "saldo": 260000,
+    "total": 1325000
   },
   {
     "num": 11,
@@ -318,16 +328,17 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "2 cam domo Hilook 2MP + NVR 4CH + HDD 1TB + 50m cable",
         "cant": 1,
-        "unit": 749,
-        "subtotal": 749
+        "unit": 749000,
+        "subtotal": 749000
       }
     ],
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 200
+        "valor": 200000
       }
     ],
     "tiempos": [
@@ -336,9 +347,9 @@
         "horas": 4
       }
     ],
-    "anticipo": 749,
-    "saldo": 200,
-    "total": 949
+    "anticipo": 749000,
+    "saldo": 200000,
+    "total": 949000
   },
   {
     "num": 12,
@@ -349,6 +360,7 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "4 cam EZVIZ Bullet WiFi 2K + 4 microSD 128GB",
         "cant": 1,
         "unit": 1074020,
@@ -358,7 +370,7 @@
     "instalacion": [
       {
         "item": "Instalación y mano de obra",
-        "valor": 420
+        "valor": 420000
       }
     ],
     "tiempos": [
@@ -368,8 +380,8 @@
       }
     ],
     "anticipo": 1074020,
-    "saldo": 420,
-    "total": 1074440
+    "saldo": 420000,
+    "total": 1494020
   },
   {
     "num": 13,
@@ -380,6 +392,7 @@
     "estado": "Pendiente",
     "productos": [
       {
+        "codigo": "",
         "nombre": "2 cam EZVIZ H3c 128GB promo + instalacion electrica + materiales",
         "cant": 1,
         "unit": 450000,
@@ -411,7 +424,8 @@
     "estado": "Pendiente",
     "productos": [
       {
-        "nombre": "9 cam Hilook 4MP + NVR 8CH + HDD 4TB + AX Pro + instalacion",
+        "codigo": "",
+        "nombre": "11 cam Hilook 4MP + NVR 8CH + HDD 4TB + AX Pro + instalacion",
         "cant": 1,
         "unit": 0,
         "subtotal": 0
@@ -442,7 +456,8 @@
     "estado": "Pendiente",
     "productos": [
       {
-        "nombre": "9 cam EZVIZ Bullet WiFi 2K + 9 microSD 128GB + AX Pro + instalacion",
+        "codigo": "",
+        "nombre": "11 cam EZVIZ Bullet WiFi 2K + 9 microSD 128GB + AX Pro + instalacion",
         "cant": 1,
         "unit": 0,
         "subtotal": 0

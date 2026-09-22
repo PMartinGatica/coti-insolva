@@ -110,7 +110,9 @@ function sincronizar_(soloVerificar) {
 
   // Las hojas de detalle se indexan por clave: evita recorrerlas
   // enteras por cada cotizacion.
-  var prodPorKey = indexar_(ss, SHEETS.PROD, ['PRODUCTO', 'CANTIDAD', 'PRECIO UNITARIO', 'SUBTOTAL']);
+  // CODIGO es opcional: si la hoja Productos no tiene esa columna,
+  // el campo sale vacio y el cotizador lo deja editable a mano.
+  var prodPorKey = indexar_(ss, SHEETS.PROD, ['PRODUCTO', 'CANTIDAD', 'PRECIO UNITARIO', 'SUBTOTAL', 'CODIGO']);
   var instPorKey = indexar_(ss, SHEETS.INST, ['ITEM', 'VALOR']);
   var tiemPorKey = indexar_(ss, SHEETS.TIEM, ['ETAPA', 'HORAS']);
 
@@ -133,12 +135,13 @@ function sincronizar_(soloVerificar) {
 
     var join = key.toUpperCase();   // la union no distingue mayusculas
 
-    // r = [PRODUCTO, CANTIDAD, PRECIO UNITARIO, SUBTOTAL]
+    // r = [PRODUCTO, CANTIDAD, PRECIO UNITARIO, SUBTOTAL, CODIGO]
     var productos = (prodPorKey[join] || []).map(function (r) {
       var cant = parseInt(r[1], 10) || 1;
       var unit = monto_(r[2]);
       var sub  = monto_(r[3]);
       return {
+        codigo:   texto_(r[4]),
         nombre:   texto_(r[0]),
         cant:     cant,
         unit:     unit,

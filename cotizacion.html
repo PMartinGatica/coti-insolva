@@ -395,7 +395,7 @@ function normalizarCotizacion(c, i) {
       const cant = parseInt(p.cant != null ? p.cant : p.cantidad, 10) || 1;
       const unit = aNumero(p.unit != null ? p.unit : (p.unitario != null ? p.unitario : p.precio));
       return {
-        codigo: aTexto(p.codigo) || 'PROD',
+        codigo: aTexto(p.codigo),
         nombre: aTexto(p.nombre || p.descripcion || p.item || p.producto),
         cant: cant,
         unit: unit,
@@ -583,10 +583,11 @@ function seleccionarCotizacion(num) {
       const nom = p.nombre || p.descripcion || p.item || '';
       const cant = p.cant || p.cantidad || 1;
       const unit = p.unit || p.unitario || p.precio || 0;
+      const cod = p.codigo || '';   // vacio si la Sheet no trae codigo
       rowsHTML += `
       <tr>
         <td class="img-cell"><div class="img-placeholder" onclick="document.getElementById('img-input-${idx}').click()"><span>+</span><input type="file" id="img-input-${idx}" accept="image/*" onchange="loadProdImg(this,${idx})"></div></td>
-        <td contenteditable="true">${p.codigo || 'PROD'}</td>
+        <td contenteditable="true">${cod}</td>
         <td contenteditable="true">${nom}</td>
         <td contenteditable="true">${cant}</td>
         <td class="r" contenteditable="true">${unit}</td>
