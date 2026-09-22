@@ -363,12 +363,103 @@ let usdRate = 1350;
 
 // ========== BUSCADOR INTELIGENTE ==========
 
+// Normaliza un registro venga del formato nuevo (productos/instalacion/tiempos
+// como arrays) o del viejo (productos como texto suelto). Asi el buscador no
+// depende de que archivo haya respondido.
+function aTexto(v) {
+  return v == null ? '' : String(v).trim();
+}
+
+function aNumero(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  return parseMonto(aTexto(v));
+}
+
+function normalizarCotizacion(c, i) {
+  c = c || {};
+  const out = {
+    num: Number(c.num) || (i + 1),
+    nroPresupuesto: aTexto(c.nroPresupuesto || c.nro) || '-',
+    cliente: aTexto(c.cliente) || 'Sin nombre',
+    fecha: aTexto(c.fecha),
+    tipo: aTexto(c.tipo),
+    estado: aTexto(c.estado) || 'Pendiente',
+    productos: [],
+    instalacion: [],
+    tiempos: []
+  };
+
+  if (Array.isArray(c.productos)) {
+    out.productos = c.productos.map(p => {
+      p = p || {};
+      const cant = parseInt(p.cant != null ? p.cant : p.cantidad, 10) || 1;
+      const unit = aNumero(p.unit != null ? p.unit : (p.unitario != null ? p.unitario : p.precio));
+      return {
+        codigo: aTexto(p.codigo) || 'PROD',
+        nombre: aTexto(p.nombre || p.descripcion || p.item || p.producto),
+        cant: cant,
+        unit: unit,
+        subtotal: aNumero(p.subtotal) || (cant * unit)
+      };
+    }).filter(p => p.nombre);
+  } else if (aTexto(c.productos)) {
+    // Formato viejo: un solo string con todo el detalle
+    const unit = aNumero(c.total);
+    out.productos = [{ codigo: 'PROD', nombre: aTexto(c.productos), cant: 1, unit: unit, subtotal: unit }];
+  }
+
+  if (Array.isArray(c.instalacion)) {
+    out.instalacion = c.instalacion.map(x => {
+      x = x || {};
+      return {
+        item: aTexto(x.item || x.desc || x.descripcion) || 'Instalación y mano de obra',
+        valor: aNumero(x.valor != null ? x.valor : (x.monto != null ? x.monto : x.precio))
+      };
+    });
+  } else if (aNumero(c.saldo) > 0) {
+    out.instalacion = [{ item: 'Instalación y mano de obra', valor: aNumero(c.saldo) }];
+  }
+
+  if (Array.isArray(c.tiempos)) {
+    out.tiempos = c.tiempos.map(t => {
+      t = t || {};
+      return {
+        etapa: aTexto(t.etapa || t.tarea) || 'Instalación',
+        horas: parseInt(t.horas, 10) || 0
+      };
+    });
+  }
+
+  // Los totales se recalculan siempre desde Productos + Instalación,
+  // que es la fuente de verdad de la Sheet.
+  out.anticipo = out.productos.reduce((a, p) => a + p.subtotal, 0);
+  out.saldo = out.instalacion.reduce((a, x) => a + x.valor, 0);
+  out.total = out.anticipo + out.saldo;
+
+  out._buscar = [
+    out.cliente, out.nroPresupuesto, out.fecha, out.tipo, out.estado,
+    out.productos.map(p => p.nombre).join(' ')
+  ].join(' ').toLowerCase();
+
+  return out;
+}
+
+function fmtMoneda(n) {
+  return '$' + (Number(n) || 0).toLocaleString('es-AR');
+}
+
+function estadoBuscador(msg) {
+  const input = document.getElementById('buscador-input');
+  if (input) input.placeholder = msg;
+}
+
 function cargarCotizaciones(jsonData) {
-  cotizaciones = jsonData || [];
+  const bruto = Array.isArray(jsonData) ? jsonData : [];
+  cotizaciones = bruto.map(normalizarCotizacion);
   const count = cotizaciones.length;
-  document.getElementById('buscador-input').placeholder = count > 0
+  estadoBuscador(count > 0
     ? `🔍 Buscar entre ${count} cotizaciones...`
-    : '🔍 Cargá datos primero (📂 Cargar datos)';
+    : '🔍 Cargá datos primero (📂 Cargar datos)');
 }
 
 function cargarJSONDesdeInput(input) {
@@ -397,12 +488,7 @@ function buscarCotizaciones() {
     return;
   }
 
-  const filtrados = cotizaciones.filter(c => 
-    c.cliente.toLowerCase().includes(q) ||
-    c.nroPresupuesto.toLowerCase().includes(q) ||
-    c.fecha.toLowerCase().includes(q) ||
-    c.tipo.toLowerCase().includes(q)
-  ).slice(0, 15);
+  const filtrados = cotizaciones.filter(c => c._buscar.includes(q)).slice(0, 15);
 
   if (filtrados.length === 0) {
     resultados.innerHTML = '<div class="buscador-item" style="color:#666;font-size:12px;text-align:center;">Sin resultados</div>';
@@ -410,13 +496,16 @@ function buscarCotizaciones() {
     return;
   }
 
-  resultados.innerHTML = filtrados.map(c => `
+  resultados.innerHTML = filtrados.map(c => {
+    const detalle = c.productos.map(p => p.nombre).join(', ');
+    const corto = detalle.length > 60 ? detalle.substring(0, 60) + '...' : detalle;
+    return `
     <div class="buscador-item" onclick="seleccionarCotizacion(${c.num})">
       <div class="bi-cliente">${c.cliente}</div>
       <div class="bi-detalle">${c.nroPresupuesto} · ${c.fecha} · ${c.tipo}</div>
-      <div class="bi-sub">${String(c.productos.map?.(p=>p.nombre).join(", ") || JSON.stringify(c.productos)).substring(0, 60)}${String(c.productos.map?.(p=>p.nombre).join(", ") || JSON.stringify(c.productos)).length > 60 ? '...' : ''} · Total: ${c.total}</div>
-    </div>
-  `).join('');
+      <div class="bi-sub">${corto} · Total: ${fmtMoneda(c.total)}</div>
+    </div>`;
+  }).join('');
   resultados.style.display = 'block';
 }
 
@@ -951,31 +1040,53 @@ function saveHTMLWithLogo() {
   URL.revokeObjectURL(url);
 }
 
-// Carga desde GitHub raw (siempre actualizado, no necesita redeploy)
-// El Apps Script sube el JSON a GitHub automaticamente
+// ═══════════════════════════════════════════════════════════════
+// CARGA DE DATOS
+//
+// Fuente unica de verdad: cotizaciones/cotizaciones_data.json
+// El Apps Script (trigger por tiempo) lo regenera desde la Google
+// Sheet y lo commitea a PMartinGatica/coti-insolva.
+//
+// Orden de intento:
+//  1. Ruta relativa -> cuando la pagina esta servida por HTTP
+//     (GitHub Pages, Netlify, servidor propio). Mismo origen, sin CORS.
+//  2. raw.githubusercontent -> cuando se abre el HTML como archivo
+//     local (file://), donde el fetch relativo lo bloquea el navegador.
+//     raw responde con Access-Control-Allow-Origin: *
+// ═══════════════════════════════════════════════════════════════
+const DATA_SOURCES = [
+  'cotizaciones/cotizaciones_data.json',
+  'https://raw.githubusercontent.com/PMartinGatica/coti-insolva/main/cotizaciones/cotizaciones_data.json'
+];
+
 async function cargarJSONLocal() {
-  const urls = [
-    'https://raw.githubusercontent.com/insolvagroup/Servicios-Insolva/main/cotizaciones/cotizaciones_data.json',
-    'cotizaciones_data.json',
-    'cotizacion/cotizaciones_data.json',
-    'cotizaciones/cotizaciones_data.json'
-  ];
-  
-  for (const url of urls) {
+  const fallos = [];
+
+  for (const url of DATA_SOURCES) {
     try {
-      const res = await fetch(url + (url.includes('http') ? '?t=' + Date.now() : ''));
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          cargarCotizaciones(data);
-          console.log('Cotizaciones cargadas desde:', url, 'Total:', data.length);
-          return;
-        }
+      const sep = url.includes('?') ? '&' : '?';
+      const res = await fetch(url + sep + 't=' + Date.now(), { cache: 'no-store' });
+
+      if (!res.ok) { fallos.push(url + ' → HTTP ' + res.status); continue; }
+
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        fallos.push(url + ' → respondio vacio o no es un array');
+        continue;
       }
-    } catch(err) {
-      console.warn('Fallo cargar desde ' + url, err);
+
+      cargarCotizaciones(data);
+      console.log('✓ Cotizaciones cargadas desde:', url, '| Total:', cotizaciones.length);
+      return;
+
+    } catch (err) {
+      fallos.push(url + ' → ' + err.message);
     }
   }
+
+  // Nada respondio: avisar en pantalla en vez de fallar en silencio.
+  estadoBuscador('⚠ No se pudieron cargar las cotizaciones');
+  console.error('Ninguna fuente de datos respondio:\n' + fallos.join('\n'));
 }
 
 // Listen for content changes

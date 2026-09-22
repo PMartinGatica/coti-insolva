@@ -1,0 +1,8 @@
+# El Apps Script versionado es apps-script/Codigo.gs (sin secretos).
+# app.md es la copia de trabajo y TIENE el token pegado adentro:
+# nunca debe subirse al repo.
+app.md
+
+# Sistema
+Thumbs.db
+.DS_Store
